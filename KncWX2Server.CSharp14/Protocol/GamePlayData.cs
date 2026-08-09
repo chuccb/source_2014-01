@@ -19,7 +19,7 @@ public sealed class KGamePlayStatus
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
+        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
             ser.Put(value.MaxHp);
             ser.Put(value.CurHp);
@@ -34,19 +34,12 @@ public sealed class KGamePlayStatus
             stl.PutMap(value.SkillCoolTime, PutInt, PutInt);
             stl.PutMap(value.QuickSlotCoolTime, PutInt, PutInt);
             stl.PutSet(value.PetMp, PutInt);
-            return true;
-        }) &&
-        SerializeRidingPetCoolTime(serializer, options);
-    }
 
-    private static bool SerializeRidingPetCoolTime(
-        NativePrimitiveSerializer serializer,
-        ProtocolOptions options)
-    {
-        // This method exists only to keep the conditional field in the same
-        // wire-order position as the native serializer. It is intentionally
-        // not called by the outer USERCLASS wrapper; the field belongs inside it.
-        return true;
+            if (options.RidingPetSystm)
+                stl.PutMap(value.RidingPetCoolTime, PutInt, PutInt);
+
+            return true;
+        });
     }
 
     public static bool TryDeserialize(
