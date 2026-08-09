@@ -4,6 +4,8 @@ public sealed class RoomUser
 {
     public const int DefaultObserverSlotCount=3;
     public const double LoadingTimeoutSeconds=60.0;
+    public const int SecretStageNone=0;
+    public const int SecretStageAgree=1;
     public long GSUid { get; set; }
     public long UserUid { get; set; }
     public long UnitUid { get; set; }
@@ -19,6 +21,9 @@ public sealed class RoomUser
     public bool IsBoss { get; private set; }
     public bool IsEnterCashShopUser { get; private set; }
     public bool IsSuccessResult { get; private set; }=true;
+    public bool IsGameBang { get; private set; }
+    public bool HavePet { get; private set; }
+    public int AgreeEnterSecretStage { get; private set; }
     public int LoadingProgress { get; private set; }=-1;
     public bool IsStageLoaded { get; private set; }
     public int NumKill { get; private set; }
@@ -41,6 +46,9 @@ public sealed class RoomUser
     public void SetIsBoss(bool value)=>IsBoss=value;
     public void SetEnterCashShopUser(bool value)=>IsEnterCashShopUser=value;
     public void SetSuccessResult(bool value)=>IsSuccessResult=value;
+    public void SetGameBang(bool value)=>IsGameBang=value;
+    public void SetHavePet(bool value)=>HavePet=value;
+    public void SetAgreeEnterSecretStage(int value)=>AgreeEnterSecretStage=value;
     public void SetLoadingProgress(int value)=>LoadingProgress=value;
     public void SetStageLoaded(bool value)=>IsStageLoaded=value;
     public void IncreaseKill()=>NumKill++;
