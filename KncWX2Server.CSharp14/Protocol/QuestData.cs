@@ -1,6 +1,6 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
-/// <summary>Quest-reform value stored by KSubQuestInfo.</summary>
+/// <summary>Quest-reform value stored by <see cref="KSubQuestInfo"/>.</summary>
 public sealed class KSubQuestData
 {
     public int InInventoryItemCount { get; set; }
@@ -14,19 +14,41 @@ public sealed class KSubQuestData
             return true;
         });
 
-    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KSubQuestData value)
+    public static bool TryDeserialize(
+        NativePrimitiveSerializer serializer,
+        out KSubQuestData value)
     {
         value = new();
-        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
-        {
-            if (!ser.TryGet(out int count) || !ser.TryGet(out bool success))
-                return (false, x);
 
-            x.InInventoryItemCount = count;
-            x.Success = success;
-            return (true, x);
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, existing) =>
+        {
+            if (!TryReadFields(ser, out var fields))
+                return (false, existing);
+
+            existing.InInventoryItemCount = fields.InInventoryItemCount;
+            existing.Success = fields.Success;
+            return (true, existing);
         });
     }
+
+    private static bool TryReadFields(
+        NativePrimitiveSerializer serializer,
+        out Fields fields)
+    {
+        if (!serializer.TryGet(out int inInventoryItemCount) ||
+            !serializer.TryGet(out bool success))
+        {
+            fields = default;
+            return false;
+        }
+
+        fields = new(inInventoryItemCount, success);
+        return true;
+    }
+
+    private readonly record struct Fields(
+        int InInventoryItemCount,
+        bool Success);
 }
 
 /// <summary>
@@ -35,17 +57,23 @@ public sealed class KSubQuestData
 /// </summary>
 public sealed class KSubQuestInfo
 {
-    public SortedDictionary<int, KSubQuestData> ReformSubQuestInfo { get; } = new();
-    public SortedDictionary<int, int> LegacySubQuestInfo { get; } = new();
+    public SortedDictionary<int, KSubQuestData> ReformSubQuestInfo { get; } = [];
+    public SortedDictionary<int, int> LegacySubQuestInfo { get; } = [];
 
-    public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    public bool Serialize(
+        NativePrimitiveSerializer serializer,
+        ProtocolOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new NativeUserClassSerializer(serializer).Put(this,
+
+        return new NativeUserClassSerializer(serializer).Put(
+            this,
             (ser, value) => value.SerializePayload(ser, options));
     }
 
-    private bool SerializePayload(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    private bool SerializePayload(
+        NativePrimitiveSerializer serializer,
+        ProtocolOptions options)
     {
         var stl = new NativeStlSerializer(serializer);
 
@@ -75,13 +103,16 @@ public sealed class KSubQuestInfo
         ArgumentNullException.ThrowIfNull(options);
         value = new();
 
-        return new NativeUserClassSerializer(serializer).TryGet(out value,
-            (ser, x) => x.DeserializePayload(ser, options)
-                ? (true, x)
-                : (false, x));
+        return new NativeUserClassSerializer(serializer).TryGet(
+            out value,
+            (ser, existing) => existing.TryDeserializePayload(ser, options)
+                ? (true, existing)
+                : (false, existing));
     }
 
-    private bool DeserializePayload(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    private bool TryDeserializePayload(
+        NativePrimitiveSerializer serializer,
+        ProtocolOptions options)
     {
         var stl = new NativeStlSerializer(serializer);
 
@@ -89,27 +120,38 @@ public sealed class KSubQuestInfo
         {
             if (!stl.TryGetMap(
                     out SortedDictionary<int, KSubQuestData> map,
-                    static ser => ser.TryGet(out int key) ? (true, key) : (false, default),
+                    GetInt32,
                     static ser => KSubQuestData.TryDeserialize(ser, out var item)
                         ? (true, item)
                         : (false, default!)))
+            {
                 return false;
+            }
 
+            ReformSubQuestInfo.Clear();
             foreach (var pair in map)
-                ReformSubQuestInfo.TryAdd(pair.Key, pair.Value);
+                ReformSubQuestInfo.Add(pair.Key, pair.Value);
         }
         else
         {
             if (!stl.TryGetMap(
                     out SortedDictionary<int, int> map,
-                    static ser => ser.TryGet(out int key) ? (true, key) : (false, default),
-                    static ser => ser.TryGet(out int item) ? (true, item) : (false, default)))
+                    GetInt32,
+                    GetInt32))
+            {
                 return false;
+            }
 
+            LegacySubQuestInfo.Clear();
             foreach (var pair in map)
-                LegacySubQuestInfo.TryAdd(pair.Key, pair.Value);
+                LegacySubQuestInfo.Add(pair.Key, pair.Value);
         }
 
         return true;
     }
+
+    private static (bool Ok, int Value) GetInt32(NativePrimitiveSerializer serializer) =>
+        serializer.TryGet(out int value)
+            ? (true, value)
+            : (false, default);
 }
