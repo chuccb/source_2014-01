@@ -245,8 +245,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         ArgumentNullException.ThrowIfNull(get);
         count = 0;
 
-        if (!ReadTag(TagArray) ||
-            !TryGet(out uint itemCount) ||
+        if (!TryBeginArray(out var itemCount) ||
             itemCount > (uint)destination.Length)
         {
             return false;
@@ -465,13 +464,12 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         return true;
     }
 
-    private bool ReadTag(byte expectedTag)
+    private bool ReadTag(byte expected)
     {
         if (!_tagging)
             return true;
 
-        Span<byte> tag = stackalloc byte[1];
-        return _buffer.Read(tag) && tag[0] == expectedTag;
+        return _buffer.ReadByte() == expected;
     }
 
     private void WriteTag(byte tag)
