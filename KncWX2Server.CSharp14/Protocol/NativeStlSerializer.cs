@@ -2,21 +2,23 @@ namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
 /// Managed equivalents of the native KNCSDK STL serializer helpers.
-/// Native std::set/std::multiset/std::map/std::multimap serialize in their
-/// ordered traversal, so the managed write path preserves that ordering.
+/// Native ordered containers are serialized in traversal order, so the managed
+/// write path preserves the same ordering semantics.
 /// </summary>
 public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
 {
-    private readonly NativePrimitiveSerializer _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+    private readonly NativePrimitiveSerializer _serializer =
+        serializer ?? throw new ArgumentNullException(nameof(serializer));
 
-    public void PutPair<T1, T2>(
-        T1 first,
-        T2 second,
-        Action<NativePrimitiveSerializer, T1> putFirst,
-        Action<NativePrimitiveSerializer, T2> putSecond)
+    public void PutPair<TFirst, TSecond>(
+        TFirst first,
+        TSecond second,
+        Action<NativePrimitiveSerializer, TFirst> putFirst,
+        Action<NativePrimitiveSerializer, TSecond> putSecond)
     {
         ArgumentNullException.ThrowIfNull(putFirst);
         ArgumentNullException.ThrowIfNull(putSecond);
+
         _serializer.WriteCollectionTag(NativePrimitiveSerializer.TagPair);
         putFirst(_serializer, first);
         putSecond(_serializer, second);
@@ -63,11 +65,11 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         IComparer<TKey>? comparer = null) =>
         PutMapRange(NativePrimitiveSerializer.TagMultiMap, SortMap(values, comparer), putKey, putValue);
 
-    public bool TryGetPair<T1, T2>(
-        out T1 first,
-        out T2 second,
-        Func<NativePrimitiveSerializer, (bool Ok, T1 Value)> getFirst,
-        Func<NativePrimitiveSerializer, (bool Ok, T2 Value)> getSecond)
+    public bool TryGetPair<TFirst, TSecond>(
+        out TFirst first,
+        out TSecond second,
+        Func<NativePrimitiveSerializer, (bool Ok, TFirst Value)> getFirst,
+        Func<NativePrimitiveSerializer, (bool Ok, TSecond Value)> getSecond)
     {
         ArgumentNullException.ThrowIfNull(getFirst);
         ArgumentNullException.ThrowIfNull(getSecond);
@@ -77,15 +79,16 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         if (!_serializer.ReadCollectionTag(NativePrimitiveSerializer.TagPair))
             return false;
 
-        var a = getFirst(_serializer);
-        if (!a.Ok)
-            return false;
-        var b = getSecond(_serializer);
-        if (!b.Ok)
+        var firstResult = getFirst(_serializer);
+        if (!firstResult.Ok)
             return false;
 
-        first = a.Value;
-        second = b.Value;
+        var secondResult = getSecond(_serializer);
+        if (!secondResult.Ok)
+            return false;
+
+        first = firstResult.Value;
+        second = secondResult.Value;
         return true;
     }
 
