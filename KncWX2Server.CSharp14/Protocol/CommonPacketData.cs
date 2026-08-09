@@ -10,8 +10,8 @@ public sealed class KServerSetData
     public bool Serialize(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
-        serializer.PutWString(ServerSetName);
         serializer.Put(ServerSetId);
+        serializer.PutWString(ServerSetName);
         serializer.Put(UserCountLevel);
         return true;
     }
