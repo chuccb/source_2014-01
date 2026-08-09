@@ -49,6 +49,21 @@ public sealed record ProtocolOptions
     public bool NewDefenceDungeon { get; init; }
     public bool ServerBuffSystem { get; init; }
 
+    public bool PvpNewSystem { get; init; }
+    public bool PvpSeason2 { get; init; }
+    public bool DeleteRoomUserInfoData { get; init; }
+    public bool AddDungeonLogColumnNum2 { get; init; }
+    public bool PaymentItemWithConsumingOtherItem { get; init; }
+    public bool DungeonClearPaymentItem { get; init; }
+    public bool DungeonClearPaymentItemFix { get; init; }
+    public bool PaymentItemOnGoingQuest { get; init; }
+    public bool ComeBackUserReward { get; init; }
+    public bool NewHenirTest { get; init; }
+    public bool VisitCashShop { get; init; }
+    public bool GateOfDarknessSupportEvent { get; init; }
+    public bool RelationshipEventInt { get; init; }
+    public bool RecruitEventBase { get; init; }
+
     public bool PcBangType { get; init; }
     public bool TitleDataSize { get; init; }
     public bool GuildTest { get; init; }
