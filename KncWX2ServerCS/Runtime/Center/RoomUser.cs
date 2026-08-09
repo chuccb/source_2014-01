@@ -12,6 +12,7 @@ public sealed class RoomUser
     public long Cid { get=>UnitUid; set=>UnitUid=value; }
     public long PartyUid { get; set; }
     public int Level { get; private set; }=1;
+    public int UnitType { get; private set; }
     public int Team { get; private set; }
     public int SlotId { get; private set; }=-1;
     public bool IsHost { get; private set; }
@@ -49,6 +50,7 @@ public sealed class RoomUser
     public RoomUserStateMachine StateMachine { get; }=new();
     public bool IsPlaying=>StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public void SetLevel(int level)=>Level=level;
+    public void SetUnitType(int unitType)=>UnitType=unitType;
     public void SetTeam(int team)=>Team=team;
     public void SetSlotId(int slotId)=>SlotId=slotId;
     public bool SetHost(bool host){IsHost=host;return true;}
