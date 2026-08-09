@@ -95,8 +95,12 @@ public sealed class KRoomSlotInfo
             x.Trade = trade;
             x.TeamNum = teamNum;
             x.RoomUserInfo = user;
-            if (options.PvpBossCombatTest && !ser.TryGet(out x.IsBoss))
-                return (false, x);
+            if (options.PvpBossCombatTest)
+            {
+                if (!ser.TryGet(out bool isBoss))
+                    return (false, x);
+                x.IsBoss = isBoss;
+            }
             return (true, x);
         });
     }
@@ -144,10 +148,19 @@ public sealed class KOpenRoomRequest
             x.RoomUserInfo = user;
             x.StudentUnitUid.Clear();
             x.StudentUnitUid.AddRange(students);
-            if (options.AddDungeonLogColumnNum2 && !ser.TryGetWString(out x.ChannelIp))
-                return (false, x);
-            if (options.BattleFieldSystem && (!ser.TryGet(out x.CurExp) || !ser.TryGet(out x.CurEd)))
-                return (false, x);
+            if (options.AddDungeonLogColumnNum2)
+            {
+                if (!ser.TryGetWString(out var channelIp))
+                    return (false, x);
+                x.ChannelIp = channelIp;
+            }
+            if (options.BattleFieldSystem)
+            {
+                if (!ser.TryGet(out int curExp) || !ser.TryGet(out int curEd))
+                    return (false, x);
+                x.CurExp = curExp;
+                x.CurEd = curEd;
+            }
             return (true, x);
         });
     }
@@ -199,12 +212,22 @@ public sealed class KEcnVerifyServerConnectAck
             x.Uid = uid;
             if (options.ServerIntegration)
             {
-                if (!ser.TryGet(out x.DbRegServerGroupId) || !ser.TryGet(out x.LocalServerGroupId)) return (false, x);
+                if (!ser.TryGet(out int dbRegServerGroupId) || !ser.TryGet(out int localServerGroupId)) return (false, x);
+                x.DbRegServerGroupId = dbRegServerGroupId;
+                x.LocalServerGroupId = localServerGroupId;
             }
-            else if (!ser.TryGet(out x.GroupId)) return (false, x);
+            else
+            {
+                if (!ser.TryGet(out short groupId)) return (false, x);
+                x.GroupId = groupId;
+            }
             if (!ser.TryGet(out long serverUid)) return (false, x);
             x.ServerUid = serverUid;
-            if (options.FromChannelToLoginProxy && !ser.TryGet(out x.ServerType)) return (false, x);
+            if (options.FromChannelToLoginProxy)
+            {
+                if (!ser.TryGet(out int serverType)) return (false, x);
+                x.ServerType = serverType;
+            }
             if (!ser.TryGetWString(out var name) || !ser.TryGet(out short maxNum) ||
                 !KNetAddress.TryDeserialize(ser, out var address) || !ser.TryGet(out int version))
                 return (false, x);
