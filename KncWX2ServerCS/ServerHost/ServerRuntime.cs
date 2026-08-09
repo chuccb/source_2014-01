@@ -5,11 +5,7 @@ using KncWX2Server.Protocol;
 
 namespace KncWX2Server.ServerHost;
 
-/// <summary>
-/// Runtime shell for the five native server roles. It owns process lifetime,
-/// listener lifetime and event dispatch; role-specific packet handlers are
-/// attached explicitly instead of inventing a wire protocol here.
-/// </summary>
+/// <summary>Runtime lifecycle and transport shell shared by the five native server roles.</summary>
 public sealed class ServerRuntime : IAsyncDisposable
 {
     private readonly ServerRole _role;
@@ -23,26 +19,27 @@ public sealed class ServerRuntime : IAsyncDisposable
     public ServerRole Role => _role;
     public int ClientCount => _clients.Count;
     public KEventDispatcher Dispatcher => _dispatcher;
+    public CancellationToken ShutdownToken => _stop.Token;
 
     public async Task StartAsync(IPEndPoint? endpoint, CancellationToken cancellationToken = default)
     {
-        cancellationToken.Register(static state => ((CancellationTokenSource)state!).Cancel(), _stop);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, cancellationToken);
         if (endpoint is null) return;
         _listener = new TcpListener(endpoint);
         _listener.Start();
-        while (!_stop.IsCancellationRequested)
+        while (!linked.IsCancellationRequested)
         {
             TcpClient client;
-            try { client = await _listener.AcceptTcpClientAsync(_stop.Token).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (_stop.IsCancellationRequested) { break; }
+            try { client = await _listener.AcceptTcpClientAsync(linked.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested) { break; }
             catch (ObjectDisposedException) { break; }
             var id = Interlocked.Increment(ref _nextConnectionId);
             _clients[id] = client;
-            _ = ProcessClientAsync(id, client, _stop.Token);
+            _ = ProcessClientAsync(id, client, linked.Token);
         }
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
         _stop.Cancel();
         _listener?.Stop();
@@ -51,7 +48,7 @@ public sealed class ServerRuntime : IAsyncDisposable
             try { pair.Value.Close(); pair.Value.Dispose(); } catch { }
         }
         _clients.Clear();
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private async Task ProcessClientAsync(long connectionId, TcpClient client, CancellationToken ct)
@@ -65,9 +62,9 @@ public sealed class ServerRuntime : IAsyncDisposable
             {
                 var count = await stream.ReadAsync(receive.AsMemory(), ct).ConfigureAwait(false);
                 if (count == 0) break;
-                // Deliberately do not parse bytes here. Native NetLayer framing,
-                // encryption/authentication and packet dispatch must be ported from
-                // the corresponding source before bytes can be interpreted safely.
+                // Framing/authentication/encryption is intentionally not guessed here.
+                // This is the transport boundary; the native NetLayer packet format
+                // must be ported before arbitrary bytes can become KEvent instances.
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
