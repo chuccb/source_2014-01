@@ -123,6 +123,25 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         if (!ReadTag(TagArray) || !TryGet(out count)) { count = default; return false; }
         return true;
     }
+    public bool TryGetArray<T>(Span<T> destination, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get, out int count)
+    {
+        ArgumentNullException.ThrowIfNull(get);
+        count = 0;
+
+        if (!ReadTag(TagArray) || !TryGet(out uint itemCount) || itemCount > (uint)destination.Length)
+            return false;
+
+        for (var i = 0; i < (int)itemCount; i++)
+        {
+            var result = get(this);
+            if (!result.Ok)
+                return false;
+            destination[i] = result.Value;
+        }
+
+        count = (int)itemCount;
+        return true;
+    }
 
     internal void WriteCollectionTag(byte tag) => WriteTag(tag);
     internal bool ReadCollectionTag(byte tag) => ReadTag(tag);
