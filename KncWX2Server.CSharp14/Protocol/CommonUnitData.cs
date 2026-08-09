@@ -15,7 +15,7 @@ public sealed class KStat
             ser.Put(value.AtkPhysic);
             ser.Put(value.AtkMagic);
             ser.Put(value.DefPhysic);
-            ser.Put(value.DefMagic);
+            ser.Put(value.DefPhysic);
             return true;
         });
 
@@ -146,96 +146,6 @@ public sealed class KItemQuantityUpdate
                 x.DeletedLegacy.AddRange(deletedLegacy);
                 x.Deleted.Clear();
             }
-            return (true, x);
-        });
-    }
-}
-
-public sealed class KCompleteQuestInfo
-{
-    public int QuestId { get; set; }
-    public int CompleteCount { get; set; }
-    public long CompleteDate { get; set; }
-
-    public bool Serialize(NativePrimitiveSerializer serializer) =>
-        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-        {
-            ser.Put(value.QuestId);
-            ser.Put(value.CompleteCount);
-            ser.Put(value.CompleteDate);
-            return true;
-        });
-
-    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KCompleteQuestInfo value)
-    {
-        value = new();
-        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
-        {
-            if (!ser.TryGet(out int questId) || !ser.TryGet(out int completeCount) || !ser.TryGet(out long completeDate)) return (false, x);
-            x.QuestId = questId;
-            x.CompleteCount = completeCount;
-            x.CompleteDate = completeDate;
-            return (true, x);
-        });
-    }
-}
-
-public sealed class KSubQuestInstance
-{
-    public int Id { get; set; }
-    public byte ClearData { get; set; }
-    public bool IsSuccess { get; set; }
-
-    public bool Serialize(NativePrimitiveSerializer serializer) =>
-        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-        {
-            ser.Put(value.Id);
-            ser.Put(value.ClearData);
-            ser.Put(value.IsSuccess);
-            return true;
-        });
-
-    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KSubQuestInstance value)
-    {
-        value = new();
-        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
-        {
-            if (!ser.TryGet(out int id) || !ser.TryGet(out byte clearData) || !ser.TryGet(out bool isSuccess)) return (false, x);
-            x.Id = id;
-            x.ClearData = clearData;
-            x.IsSuccess = isSuccess;
-            return (true, x);
-        });
-    }
-}
-
-public sealed class KQuestInstance
-{
-    public int Id { get; set; }
-    public long OwnerUnitUid { get; set; }
-    public List<KSubQuestInstance> SubQuestInstances { get; } = [];
-
-    public bool Serialize(NativePrimitiveSerializer serializer) =>
-        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-        {
-            ser.Put(value.Id);
-            ser.Put(value.OwnerUnitUid);
-            new NativeStlSerializer(ser).PutVector(value.SubQuestInstances, static (s, item) => item.Serialize(s));
-            return true;
-        });
-
-    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KQuestInstance value)
-    {
-        value = new();
-        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
-        {
-            if (!ser.TryGet(out int id) || !ser.TryGet(out long ownerUnitUid) ||
-                !new NativeStlSerializer(ser).TryGetVector(out List<KSubQuestInstance> subQuestInstances,
-                    static s => KSubQuestInstance.TryDeserialize(s, out var item) ? (true, item) : (false, new KSubQuestInstance()))) return (false, x);
-            x.Id = id;
-            x.OwnerUnitUid = ownerUnitUid;
-            x.SubQuestInstances.Clear();
-            x.SubQuestInstances.AddRange(subQuestInstances);
             return (true, x);
         });
     }
