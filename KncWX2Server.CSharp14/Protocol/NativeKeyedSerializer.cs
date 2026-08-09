@@ -8,7 +8,7 @@ namespace KncWX2Server.CSharp14.Protocol;
 /// </summary>
 public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
 {
-    private const byte TagBuffer = 24;
+    private const byte TagBuffer = NativePrimitiveSerializer.TagBuffer;
 
     private readonly Dictionary<TKey, KSerBuffer> _objects = [];
     private bool _useTagging;
@@ -17,36 +17,33 @@ public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
     public int Count => _objects.Count;
 
     public void SetTagging(bool useTagging) => _useTagging = useTagging;
-
     public bool HasKey(TKey key) => _objects.ContainsKey(key);
-
     public IReadOnlyList<TKey> GetKeys() => [.. _objects.Keys];
-
     public bool Erase(TKey key) => _objects.Remove(key);
-
     public void Clear() => _objects.Clear();
 
-    public void Put<T>(TKey key, T value, Action<NativePrimitiveSerializer, T> put)
+    /// <summary>Matches native Put(): failed serialization must not replace the existing entry.</summary>
+    public bool Put<T>(TKey key, T value, Func<NativePrimitiveSerializer, T, bool> put)
     {
         ArgumentNullException.ThrowIfNull(put);
 
         var buffer = new KSerBuffer();
         var serializer = new NativePrimitiveSerializer(buffer, _useTagging);
-        put(serializer, value);
+        if (!put(serializer, value))
+            return false;
+
         _objects[key] = buffer;
+        return true;
     }
 
-    public bool TryGet<T>(
-        TKey key,
-        out T value,
-        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
+    public bool TryGet<T>(TKey key, out T value, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
     {
         ArgumentNullException.ThrowIfNull(get);
         value = default!;
-
         if (!_objects.TryGetValue(key, out var stored))
             return false;
 
+        // Native Get() copies the buffer because deserialization advances its read cursor.
         var buffer = stored.Clone();
         var serializer = new NativePrimitiveSerializer(buffer, _useTagging);
         var result = get(serializer);
@@ -57,42 +54,32 @@ public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
         return true;
     }
 
-    public void PutInto(
-        NativePrimitiveSerializer serializer,
-        Action<NativePrimitiveSerializer, TKey> putKey)
+    public void PutInto(NativePrimitiveSerializer serializer, Action<NativePrimitiveSerializer, TKey> putKey)
     {
         ArgumentNullException.ThrowIfNull(serializer);
         ArgumentNullException.ThrowIfNull(putKey);
 
-        // Native KKeyedSerializer::PutInto(): ser.Put(m_useTagging), then ser.Put(m_objects).
         serializer.Put(_useTagging);
-
-        var entries = _objects
-            .Select(static pair => new KeyValuePair<TKey, KSerBuffer>(pair.Key, pair.Value))
-            .ToArray();
-
-        var stl = new NativeStlSerializer(serializer);
-        stl.PutMap(entries, putKey, static (ser, buffer) => PutBuffer(ser, buffer));
+        var entries = _objects.Select(static pair => new KeyValuePair<TKey, KSerBuffer>(pair.Key, pair.Value)).ToArray();
+        new NativeStlSerializer(serializer).PutMap(entries, putKey, static (ser, buffer) => PutBuffer(ser, buffer));
     }
 
-    public bool TryGetFrom(
-        NativePrimitiveSerializer serializer,
-        Func<NativePrimitiveSerializer, (bool Ok, TKey Value)> getKey)
+    public bool TryGetFrom(NativePrimitiveSerializer serializer, Func<NativePrimitiveSerializer, (bool Ok, TKey Value)> getKey)
     {
         ArgumentNullException.ThrowIfNull(serializer);
         ArgumentNullException.ThrowIfNull(getKey);
 
+        // Native GetFrom() clears m_objects before attempting the read.
+        _objects.Clear();
         if (!serializer.TryGet(out bool tagging))
             return false;
 
-        var stl = new NativeStlSerializer(serializer);
-        if (!stl.TryGetMap(out Dictionary<TKey, KSerBuffer> values, getKey, TryGetBuffer))
+        if (!new NativeStlSerializer(serializer).TryGetMap(
+                out Dictionary<TKey, KSerBuffer> values, getKey, TryGetBuffer))
             return false;
 
-        _objects.Clear();
         foreach (var pair in values)
             _objects.Add(pair.Key, pair.Value);
-
         _useTagging = tagging;
         return true;
     }
@@ -104,12 +91,9 @@ public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
 
         foreach (var pair in _objects)
         {
-            if (!other._objects.TryGetValue(pair.Key, out var otherBuffer))
-                return false;
-            if (!pair.Value.WrittenMemory.Span.SequenceEqual(otherBuffer.WrittenMemory.Span))
+            if (!other._objects.TryGetValue(pair.Key, out var otherBuffer) || !pair.Value.Equals(otherBuffer))
                 return false;
         }
-
         return true;
     }
 
@@ -117,13 +101,10 @@ public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
     {
         serializer.WriteCollectionTag(TagBuffer);
         serializer.Put((uint)buffer.Length);
-
         if (buffer.Length == 0)
             return;
 
-        // KKeyedSerializer creates its stored buffers through BeginWriting and
-        // does not compress them, so the serialized buffer's flag is false here.
-        serializer.Put(false);
+        serializer.Put(buffer.IsCompressed);
         serializer.PutRaw(buffer.WrittenMemory.Span);
     }
 
@@ -136,14 +117,14 @@ public sealed class NativeKeyedSerializer<TKey> where TKey : notnull
             return (true, buffer);
         if (length > int.MaxValue || length > serializer.ReadLength)
             return (false, buffer);
-        if (!serializer.TryGet(out bool compressed) || compressed)
+        if (!serializer.TryGet(out bool compressed))
             return (false, buffer);
 
         var bytes = GC.AllocateUninitializedArray<byte>((int)length);
         if (!serializer.TryGetRaw(bytes))
             return (false, buffer);
 
-        buffer.SetData(bytes);
+        buffer.SetData(bytes, compressed);
         return (true, buffer);
     }
 }
