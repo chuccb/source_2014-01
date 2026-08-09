@@ -20,7 +20,6 @@ public sealed record ProtocolOptions
     public bool DllListCheckBeforeLoading { get; init; }
     public bool FixedDateEvent { get; init; }
     public bool HackingUserCheckCount { get; init; }
-
     public bool MachineIdDuplicateCheck { get; init; }
     public bool SerialNumberAvailabilityCheckInGameServer { get; init; }
     public bool CheckMachineLocalTime { get; init; }
@@ -30,6 +29,11 @@ public sealed record ProtocolOptions
     public bool ChannelingAeria { get; init; }
 
     public bool PetSystem { get; init; }
+    public bool PetIdDataTypeChange { get; init; }
+    public bool PetAutoLooting { get; init; }
+    public bool FreeAutoLooting { get; init; }
+    public bool PeriodPet { get; init; }
+    public bool ReformQuest { get; init; }
     public bool ItemOptionDataSize { get; init; }
     public bool ExpandSlotIdDataSize { get; init; }
     public bool NewItemSystem201305 { get; init; }
@@ -38,4 +42,16 @@ public sealed record ProtocolOptions
     public bool GuildSkillTest { get; init; }
     public bool SkillNote { get; init; }
     public bool DeleteItem { get; init; }
+    public bool BattleFieldSystem { get; init; }
+    public bool ReformTheGateOfDarkness { get; init; }
+    public bool PcBangType { get; init; }
+    public bool TitleDataSize { get; init; }
+    public bool GuildTest { get; init; }
+    public bool UnitWaitDelete { get; init; }
+    public bool AddWarpButton { get; init; }
+    public bool GrowUpSocket { get; init; }
+    public bool ChinaSpiritEvent { get; init; }
+    public bool RecruitEventQuestForNewUser { get; init; }
+    public bool NewYearEvent2014 { get; init; }
+    public bool RidingPetSystm { get; init; }
 }
