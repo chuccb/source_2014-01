@@ -15,7 +15,7 @@ public sealed class KStat
             ser.Put(value.AtkPhysic);
             ser.Put(value.AtkMagic);
             ser.Put(value.DefPhysic);
-            ser.Put(value.DefPhysic);
+            ser.Put(value.DefMagic);
             return true;
         });
 
