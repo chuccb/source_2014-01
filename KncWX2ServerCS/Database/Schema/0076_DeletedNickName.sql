@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS GDeletedNickName (
+    Nickname TEXT NOT NULL PRIMARY KEY
+);
