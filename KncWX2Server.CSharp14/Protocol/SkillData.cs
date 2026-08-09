@@ -49,22 +49,10 @@ public sealed class KUnitSkillData
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
-            var equippedSkill = new KSkillData[EquippedSkillCount];
-            for (var i = 0; i < EquippedSkillCount; i++)
+            if (!TryDeserializeSkills(ser, out var equippedSkill) ||
+                !TryDeserializeSkills(ser, out var equippedSkillSlotB))
             {
-                if (!KSkillData.TryDeserialize(ser, out var item))
-                    return (false, existing);
-
-                equippedSkill[i] = item;
-            }
-
-            var equippedSkillSlotB = new KSkillData[EquippedSkillCount];
-            for (var i = 0; i < EquippedSkillCount; i++)
-            {
-                if (!KSkillData.TryDeserialize(ser, out var item))
-                    return (false, existing);
-
-                equippedSkillSlotB[i] = item;
+                return (false, existing);
             }
 
             if (!ser.TryGetWString(out var endDate) ||
@@ -108,6 +96,26 @@ public sealed class KUnitSkillData
 
             return (true, existing);
         });
+    }
+
+    private static bool TryDeserializeSkills(
+        NativePrimitiveSerializer serializer,
+        out KSkillData[] skills)
+    {
+        skills = new KSkillData[EquippedSkillCount];
+
+        for (var i = 0; i < skills.Length; i++)
+        {
+            if (!KSkillData.TryDeserialize(serializer, out var skill))
+            {
+                skills = [];
+                return false;
+            }
+
+            skills[i] = skill;
+        }
+
+        return true;
     }
 
     private static void SerializeSkill(
