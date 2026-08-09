@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS GItemEnchant (
+    ItemUID INTEGER NOT NULL,
+    ELevel INTEGER NULL
+);
+CREATE INDEX IF NOT EXISTS ix_GItemEnchant_ItemUID ON GItemEnchant(ItemUID);
