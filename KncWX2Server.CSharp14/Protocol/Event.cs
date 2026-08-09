@@ -64,11 +64,29 @@ public sealed class KPerformerInfo
         return clone;
     }
 
-    internal void WriteTo(NativePrimitiveSerializer serializer)
+    /// <summary>
+    /// Serializes the complete native user-class representation, including
+    /// eTAG_USERCLASS. The member order is exactly Event.cpp's PutInto().
+    /// </summary>
+    public bool Serialize(NativePrimitiveSerializer serializer) =>
+        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) => value.WriteTo(ser));
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KPerformerInfo value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(
+            out value,
+            static (ser, existing) => TryReadFrom(ser, existing)
+                ? (true, existing)
+                : (false, existing));
+    }
+
+    internal bool WriteTo(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
         serializer.Put(PerformerId);
         new NativeStlSerializer(serializer).PutSet(_uids, static (ser, uid) => ser.Put(uid));
+        return true;
     }
 
     internal static bool TryReadFrom(NativePrimitiveSerializer serializer, KPerformerInfo value)
@@ -158,6 +176,24 @@ public sealed class KEvent
 
     public void SetFromType(EventFromType type) => FromType = type;
 
+    /// <summary>
+    /// Serializes the complete native KEvent user-class representation.
+    /// m_usFromType is deliberately excluded because Event.cpp's serializer
+    /// does not include it.
+    /// </summary>
+    public bool Serialize(NativePrimitiveSerializer serializer) =>
+        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) => value.WriteTo(ser));
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KEvent value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(
+            out value,
+            static (ser, existing) => TryReadFrom(ser, existing)
+                ? (true, existing)
+                : (false, existing));
+    }
+
     public KEvent Clone()
     {
         var clone = new KEvent
@@ -176,14 +212,17 @@ public sealed class KEvent
         return clone;
     }
 
-    internal void WriteTo(NativePrimitiveSerializer serializer)
+    internal bool WriteTo(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
-        Destination.WriteTo(serializer);
+        if (!Destination.WriteTo(serializer))
+            return false;
+
         serializer.Put(FirstTrace);
         serializer.Put(LastTrace);
         serializer.Put(EventId);
         new NativeBufferSerializer(serializer).Put(Buffer);
+        return true;
     }
 
     internal static bool TryReadFrom(NativePrimitiveSerializer serializer, KEvent value)
