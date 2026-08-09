@@ -31,8 +31,22 @@ public sealed class KBuffBehaviorFactor
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
         {
-            ser.Put(value.Type); return ser.PutVector(value.Values);
+            ser.Put(value.Type);
+            new NativeStlSerializer(ser).PutVector(value.Values, static (s, item) => s.Put(item));
+            return true;
         });
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KBuffBehaviorFactor value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
+        {
+            if (!ser.TryGet(out uint type)) return (false, x);
+            var stl = new NativeStlSerializer(ser);
+            if (!stl.TryGetVector(out List<float> values, static s => s.TryGet(out float item) ? (true, item) : (false, default))) return (false, x);
+            x.Type = type; x.Values = values; return (true, x);
+        });
+    }
 }
 
 public sealed class KBuffFinalizerFactor
@@ -43,8 +57,22 @@ public sealed class KBuffFinalizerFactor
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
         {
-            ser.Put(value.Type); return ser.PutVector(value.Values);
+            ser.Put(value.Type);
+            new NativeStlSerializer(ser).PutVector(value.Values, static (s, item) => s.Put(item));
+            return true;
         });
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KBuffFinalizerFactor value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
+        {
+            if (!ser.TryGet(out uint type)) return (false, x);
+            var stl = new NativeStlSerializer(ser);
+            if (!stl.TryGetVector(out List<float> values, static s => s.TryGet(out float item) ? (true, item) : (false, default))) return (false, x);
+            x.Type = type; x.Values = values; return (true, x);
+        });
+    }
 }
 
 public sealed class KBuffIdentity
@@ -57,4 +85,14 @@ public sealed class KBuffIdentity
         {
             ser.Put(value.BuffTempletId); ser.Put(value.UniqueNum); return true;
         });
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KBuffIdentity value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
+        {
+            if (!ser.TryGet(out int id) || !ser.TryGet(out uint unique)) return (false, x);
+            x.BuffTempletId = id; x.UniqueNum = unique; return (true, x);
+        });
+    }
 }
