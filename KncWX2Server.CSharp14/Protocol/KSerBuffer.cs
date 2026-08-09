@@ -1,15 +1,19 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+
 namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
-/// Managed byte buffer matching the native KSerBuffer read/write cursor semantics.
-/// Compression remains a separate concern until its native implementation is ported;
-/// the serializer itself only relies on the byte-storage contract.
+/// Managed counterpart of the native KSerBuffer.
+/// The stored bytes, read cursor, compression flag, and compressed representation
+/// follow SerBuffer.h/SerBuffer.cpp rather than merely modeling a generic byte buffer.
 /// </summary>
 public sealed class KSerBuffer
 {
     private byte[] _buffer;
     private int _writePosition;
     private int _readPosition;
+    private bool _compressed;
 
     public KSerBuffer(int initialCapacity = 256)
     {
@@ -27,18 +31,25 @@ public sealed class KSerBuffer
     public int Length => _writePosition;
     public int ReadLength => _writePosition - _readPosition;
     public int ReadPosition => _readPosition;
+    public bool IsCompressed => _compressed;
     public ReadOnlyMemory<byte> WrittenMemory => _buffer.AsMemory(0, _writePosition);
+    public ReadOnlyMemory<byte> ReadableMemory => _buffer.AsMemory(_readPosition, ReadLength);
 
     public void Clear()
     {
         _writePosition = 0;
         _readPosition = 0;
+        _compressed = false;
     }
 
+    public void Reset() => _readPosition = 0;
     public void ResetReader() => _readPosition = 0;
 
     public void Write(ReadOnlySpan<byte> source)
     {
+        if (source.IsEmpty)
+            throw new ArgumentOutOfRangeException(nameof(source), "Native KSerBuffer::Write requires len > 0.");
+
         EnsureCapacity(source.Length);
         source.CopyTo(_buffer.AsSpan(_writePosition));
         _writePosition += source.Length;
@@ -56,17 +67,23 @@ public sealed class KSerBuffer
         return true;
     }
 
-    public void SetData(ReadOnlySpan<byte> source)
+    public void SetData(ReadOnlySpan<byte> source, bool compressed = false)
     {
         Clear();
-        EnsureCapacity(source.Length);
-        Write(source);
+        if (!source.IsEmpty)
+            Write(source);
+        _compressed = compressed;
     }
 
-    public KSerBuffer Clone() => new(WrittenMemory.Span)
+    public KSerBuffer Clone()
     {
-        _readPosition = _readPosition,
-    };
+        var clone = new KSerBuffer(WrittenMemory.Span)
+        {
+            _readPosition = _readPosition,
+            _compressed = _compressed,
+        };
+        return clone;
+    }
 
     public void Swap(KSerBuffer other)
     {
@@ -74,7 +91,93 @@ public sealed class KSerBuffer
         (_buffer, other._buffer) = (other._buffer, _buffer);
         (_writePosition, other._writePosition) = (other._writePosition, _writePosition);
         (_readPosition, other._readPosition) = (other._readPosition, _readPosition);
+        (_compressed, other._compressed) = (other._compressed, _compressed);
     }
+
+    /// <summary>
+    /// Compresses the current stored bytes using zlib level 1, matching native compress2(..., 1).
+    /// The resulting stored representation is [DWORD originalLength in native little-endian][zlib bytes].
+    /// </summary>
+    public bool Compress()
+    {
+        if (_compressed)
+            return true;
+        if (_writePosition == 0)
+        {
+            _compressed = true;
+            return true;
+        }
+
+        var source = WrittenMemory;
+        using var output = new MemoryStream();
+        Span<byte> originalLength = stackalloc byte[sizeof(uint)];
+        BinaryPrimitives.WriteUInt32LittleEndian(originalLength, checked((uint)source.Length));
+        output.Write(originalLength);
+
+        using (var zlib = new ZLibStream(output, CompressionLevel.Fastest, leaveOpen: true))
+            zlib.Write(source.Span);
+
+        var compressed = output.ToArray();
+        Clear();
+        Write(compressed);
+        _compressed = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Restores a buffer produced by Compress(). The DWORD stored before the zlib stream is native
+    /// little-endian because native Compress() writes it directly with Write().
+    /// </summary>
+    public bool UnCompress()
+    {
+        if (!_compressed)
+            return true;
+        if (_writePosition < sizeof(uint))
+            return false;
+
+        var originalLength = BinaryPrimitives.ReadUInt32LittleEndian(_buffer.AsSpan(0, sizeof(uint)));
+        if (originalLength > int.MaxValue)
+            return false;
+
+        try
+        {
+            using var input = new MemoryStream(_buffer, sizeof(uint), _writePosition - sizeof(uint), writable: false);
+            using var zlib = new ZLibStream(input, CompressionMode.Decompress);
+            var restored = GC.AllocateUninitializedArray<byte>((int)originalLength);
+            var offset = 0;
+            while (offset < restored.Length)
+            {
+                var read = zlib.Read(restored, offset, restored.Length - offset);
+                if (read == 0)
+                    return false;
+                offset += read;
+            }
+
+            if (zlib.ReadByte() != -1)
+                return false;
+
+            Clear();
+            if (restored.Length != 0)
+                Write(restored);
+            return true;
+        }
+        catch (InvalidDataException)
+        {
+            return false;
+        }
+    }
+
+    public bool Equals(KSerBuffer? other)
+    {
+        if (other is null || Length != other.Length)
+            return false;
+        return WrittenMemory.Span.SequenceEqual(other.WrittenMemory.Span);
+    }
+
+    public override bool Equals(object? obj) => obj is KSerBuffer other && Equals(other);
+
+    public override int GetHashCode() =>
+        HashCode.Combine(Length, WrittenMemory.Span.Length == 0 ? 0 : WrittenMemory.Span[0]);
 
     private void EnsureCapacity(int additionalBytes)
     {
