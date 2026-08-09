@@ -42,20 +42,24 @@ public sealed class RoomUserStateMachine
             return false;
         }
 
-        var previousState = State;
-        State = resolvedState;
-        Transitioned?.Invoke(previousState, State);
+        TransitionTo(resolvedState);
         return true;
     }
 
     public void Force(RoomUserState state)
     {
+        if (State == state)
+        {
+            return;
+        }
+
+        TransitionTo(state);
+    }
+
+    private void TransitionTo(RoomUserState state)
+    {
         var previousState = State;
         State = state;
-
-        if (previousState != state)
-        {
-            Transitioned?.Invoke(previousState, state);
-        }
+        Transitioned?.Invoke(previousState, state);
     }
 }
