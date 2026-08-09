@@ -2,8 +2,9 @@ namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
 /// System event identifiers declared by EventID_System.h before the optional
-/// global-event include. The global/client/server event lists are kept separate
-/// because their numeric ranges are assembled by the native preprocessor.
+/// global-event include. Client/server lists are intentionally not invented here:
+/// the native headers are generated/configuration-dependent and are not present
+/// as standalone source files in this repository snapshot.
 /// </summary>
 public enum SystemEventId : ushort
 {
@@ -31,8 +32,8 @@ public enum SystemEventId : ushort
 
 /// <summary>
 /// Exact managed representation of native KPerformerInfo.
-/// Native storage is std::set&lt;UidType&gt;, so SortedSet&lt;long&gt; preserves both
-/// uniqueness and the traversal order used by serialization.
+/// Native storage is std::set&lt;UidType&gt;, and UidType is __int64, so long plus
+/// SortedSet&lt;long&gt; preserves the native value width, uniqueness and traversal order.
 /// </summary>
 public sealed class KPerformerInfo
 {
@@ -48,6 +49,7 @@ public sealed class KPerformerInfo
 
     public bool AddUid(long uid)
     {
+        // This deliberately checks the size before insert, matching native AddUID().
         if (_uids.Count >= MaxUidNum)
             return false;
 
@@ -215,7 +217,10 @@ public sealed class KEvent
     internal bool WriteTo(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
-        if (!Destination.WriteTo(serializer))
+
+        // Native ks.Put(m_kDestPerformer) dispatches through the USERCLASS
+        // overload, so the nested eTAG_USERCLASS must be present here too.
+        if (!Destination.Serialize(serializer))
             return false;
 
         serializer.Put(FirstTrace);
@@ -230,13 +235,18 @@ public sealed class KEvent
         ArgumentNullException.ThrowIfNull(serializer);
         ArgumentNullException.ThrowIfNull(value);
 
-        if (!KPerformerInfo.TryReadFrom(serializer, value.Destination) ||
+        // Match native ks.Get(m_kDestPerformer): consume the nested USERCLASS tag
+        // before reading KPerformerInfo's fields.
+        if (!KPerformerInfo.TryDeserialize(serializer, out var destination) ||
             !serializer.TryGet(out long firstTrace) ||
             !serializer.TryGet(out long lastTrace) ||
             !serializer.TryGet(out ushort eventId) ||
             !new NativeBufferSerializer(serializer).TryGet(value.Buffer))
             return false;
 
+        value.Destination.PerformerId = destination.PerformerId;
+        foreach (var uid in destination.UidList)
+            value.Destination.AddUid(uid);
         value.FirstTrace = firstTrace;
         value.LastTrace = lastTrace;
         value.EventId = eventId;
