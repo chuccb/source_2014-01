@@ -13,6 +13,8 @@ public sealed class RoomUser
     private readonly Dictionary<long, Stopwatch> _tradeRequests = [];
     private readonly Dictionary<int, int> _receivedItems = [];
     private bool _ready;
+    private Stopwatch? _playTimer;
+    private float _playTime;
 
     public long GSUid { get; set; }
     public long UserUid { get; set; }
@@ -47,6 +49,8 @@ public sealed class RoomUser
 
     public int RewardEXP { get; private set; }
     public int RewardPartyEXP { get; private set; }
+    public int RewardED { get; private set; }
+    public int RewardVP { get; private set; }
     public int UsedResurrectionStoneCount { get; private set; }
 
     public int LoadingProgress { get; private set; } = -1;
@@ -87,6 +91,7 @@ public sealed class RoomUser
 
     public bool IsPlaying => StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public bool IsOnlyPlaying => StateMachine.State is RoomUserState.Play;
+    public float PlayTime => GetPlayTime();
 
     public void SetLevel(int level) => Level = level;
     public void SetUnitType(int unitType) => UnitType = unitType;
@@ -142,6 +147,10 @@ public sealed class RoomUser
     public void SetRingOfPvpRebirth(bool value) => IsRingOfPvpRebirth = value;
     public void SetRewardEXP(int value) => RewardEXP = value;
     public void SetRewardPartyEXP(int value) => RewardPartyEXP = value;
+    public void AddRewardEXP(int value) => RewardEXP += value;
+    public void AddRewardPartyEXP(int value) => RewardPartyEXP += value;
+    public void AddRewardED(int value) => RewardED += value;
+    public void AddRewardVP(int value) => RewardVP += value;
     public void SetUsedResurrectionStoneCount(int value) => UsedResurrectionStoneCount = value;
     public void IncreaseUsedResurrectionStoneCount() => UsedResurrectionStoneCount++;
 
@@ -306,7 +315,6 @@ public sealed class RoomUser
         LoadingProgress = 0;
         IsStageLoaded = false;
         StageId = -1;
-        SubStageId = -1;
         RebirthPos = 0;
         NumKill = 0;
         NumMDKill = 0;
@@ -317,6 +325,8 @@ public sealed class RoomUser
         IsSuccessResult = false;
         RewardEXP = 0;
         RewardPartyEXP = 0;
+        RewardED = 0;
+        RewardVP = 0;
         UsedResurrectionStoneCount = 0;
         PassedStageCount = 0;
         PassedSubStageCount = 0;
@@ -346,6 +356,8 @@ public sealed class RoomUser
         IsDie = false;
         HP = -1f;
         EndPlayFlag = false;
+        _playTimer = Stopwatch.StartNew();
+        _playTime = 0f;
         StateMachine.Send(RoomUserInput.ToPlay);
     }
 
@@ -354,9 +366,9 @@ public sealed class RoomUser
         LoadingProgress = 0;
         IsStageLoaded = false;
         StageId = -1;
-        SubStageId = -1;
         RebirthPos = 0;
         EndPlayFlag = true;
+        _playTime = _playTimer?.ElapsedMilliseconds / 1000f ?? 0f;
         StateMachine.Send(RoomUserInput.ToResult);
     }
 
@@ -365,6 +377,16 @@ public sealed class RoomUser
         SetReady(false);
         LoadingProgress = -1;
         StateMachine.Send(RoomUserInput.ToInit);
+    }
+
+    public float GetPlayTime()
+    {
+        if (StateMachine.State is RoomUserState.Play && _playTimer is not null)
+        {
+            _playTime = (float)_playTimer.Elapsed.TotalSeconds;
+        }
+
+        return _playTime;
     }
 
     public int GetPercentHP(int baseHp) =>
