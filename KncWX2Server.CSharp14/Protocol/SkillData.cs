@@ -45,9 +45,15 @@ public sealed class KUnitSkillData
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
             for (var i = 0; i < 4; i++)
-                if (!KSkillData.TryDeserialize(ser, out existing.EquippedSkill[i])) return (false, existing);
+            {
+                if (!KSkillData.TryDeserialize(ser, out var item)) return (false, existing);
+                existing.EquippedSkill[i] = item;
+            }
             for (var i = 0; i < 4; i++)
-                if (!KSkillData.TryDeserialize(ser, out existing.EquippedSkillSlotB[i])) return (false, existing);
+            {
+                if (!KSkillData.TryDeserialize(ser, out var item)) return (false, existing);
+                existing.EquippedSkillSlotB[i] = item;
+            }
             if (!ser.TryGetWString(out var endDate) || !ser.TryGet(out sbyte expirationState)) return (false, existing);
             var stl = new NativeStlSerializer(ser);
             if (!stl.TryGetVector(out List<KSkillData> passive,
