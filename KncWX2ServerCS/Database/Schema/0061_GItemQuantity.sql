@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS GItemQuantity (
+    ItemUID INTEGER NOT NULL,
+    Quantity INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_GItemQuantity_ItemUID ON GItemQuantity(ItemUID);
