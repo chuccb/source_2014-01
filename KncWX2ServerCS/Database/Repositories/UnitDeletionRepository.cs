@@ -13,7 +13,7 @@ public sealed class UnitDeletionRepository
         await _database.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         var nickname = await ReadNicknameAsync(unitUid, cancellationToken).ConfigureAwait(false);
-        if (nickname is UnitMissing)
+        if (!nickname.Exists)
             return -1;
         if (nickname.Value is null)
             return -2;
@@ -64,7 +64,7 @@ public sealed class UnitDeletionRepository
         }
     }
 
-    private async Task<(string? Value, bool Missing)> ReadNicknameAsync(long unitUid, CancellationToken ct)
+    private async Task<(string? Value, bool Exists)> ReadNicknameAsync(long unitUid, CancellationToken ct)
     {
         await using var command = _database.Connection.CreateCommand();
         command.CommandText = """
@@ -73,10 +73,10 @@ public sealed class UnitDeletionRepository
             """;
         command.Parameters.AddWithValue("$unitUid", unitUid);
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        await reader.ReadAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+            return (null, false);
         var exists = reader.GetInt64(1) != 0;
-        if (!exists) return (null, true);
-        return (reader.IsDBNull(0) ? null : reader.GetString(0), false);
+        return (reader.IsDBNull(0) ? null : reader.GetString(0), exists);
     }
 
     private async Task<long> CountActiveItemsAsync(long unitUid, CancellationToken ct)
@@ -109,7 +109,4 @@ public sealed class UnitDeletionRepository
     }
 
     private static string FormatSmallDateTime(DateTime value) => value.ToString("yyyy-MM-dd HH:mm");
-
-    private readonly record struct UnitNickname(string? Value);
-    private static readonly UnitNickname UnitMissing = new(null);
 }
