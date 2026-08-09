@@ -24,7 +24,7 @@ public static class RoomUserManagerPartyParity
 
     private static class SuitableLevelState
     {
-        private static readonly ConditionalWeakTable<RoomUserManager, ConcurrentDictionary<long, bool>> Values = new();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RoomUserManager, System.Collections.Concurrent.ConcurrentDictionary<long, bool>> Values = new();
 
         public static void Set(RoomUserManager manager, long unitUid, bool value)
             => Values.GetOrCreateValue(manager)[unitUid] = value;
