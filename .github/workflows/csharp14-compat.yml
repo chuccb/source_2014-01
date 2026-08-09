@@ -1,0 +1,20 @@
+name: C# 14 compatibility
+
+on:
+  push:
+    branches: ["csharp14/kncwx2server"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build
+        run: dotnet build KncWX2ServerCS/KncWX2ServerCS.sln --configuration Release --nologo
+      - name: Run protocol compatibility vectors
+        run: dotnet run --project KncWX2ServerCS/Protocol.Tests/KncWX2Server.Protocol.Tests.csproj --configuration Release --no-build

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>KncWX2Server.Protocol</AssemblyName>
+    <RootNamespace>KncWX2Server.Protocol</RootNamespace>
+  </PropertyGroup>
+</Project>
