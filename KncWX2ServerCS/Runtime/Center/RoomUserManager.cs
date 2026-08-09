@@ -1,0 +1,67 @@
+namespace KncWX2Server.Runtime.Center;
+
+public sealed class RoomUserManager
+{
+    public enum UserListType { Game=0, Observer=1 }
+    private readonly List<RoomSlot> _gameSlots=new();
+    private readonly List<RoomSlot> _observerSlots=new();
+    private readonly Dictionary<long,RoomUser> _gameUsers=new();
+    private readonly Dictionary<long,RoomUser> _observerUsers=new();
+    private readonly object _gate=new();
+    private int _gameMode;
+    public IReadOnlyList<RoomSlot> GameSlots=>_gameSlots;
+    public IReadOnlyList<RoomSlot> ObserverSlots=>_observerSlots;
+    public void Init(int gameSlotCount,int observerSlotCount=3,int gameMode=0){if(gameSlotCount<0||observerSlotCount<0)throw new ArgumentOutOfRangeException();lock(_gate){ResetInternal(UserListType.Game);ResetInternal(UserListType.Observer);_gameMode=gameMode;for(var i=0;i<gameSlotCount;i++)_gameSlots.Add(new RoomSlot(i));for(var i=0;i<observerSlotCount;i++)_observerSlots.Add(new RoomSlot(i));AssignTeamInternal(_gameSlots);AssignTeamInternal(_observerSlots);}}
+    public RoomSlot? GetSlot(int slotId,UserListType type=UserListType.Game){lock(_gate){var s=Slots(type);return slotId>=0&&slotId<s.Count?s[slotId]:null;}}
+    public RoomUser? GetUser(long unitUid,UserListType type=UserListType.Game){lock(_gate)return Users(type).TryGetValue(unitUid,out var u)?u:null;}
+    public int GetNumTotalSlot(UserListType type=UserListType.Game){lock(_gate)return Slots(type).Count;}
+    public int GetNumOpenedSlot(UserListType type=UserListType.Game){lock(_gate)return Slots(type).Count(x=>x.IsOpened);}
+    public int GetNumOccupiedSlot(UserListType type=UserListType.Game){lock(_gate)return Slots(type).Count(x=>x.IsOccupied);}
+    public int GetNumMember(UserListType type=UserListType.Game){lock(_gate)return Users(type).Count;}
+    public int GetNumPlaying(UserListType type=UserListType.Game){lock(_gate)return Users(type).Values.Count(x=>x.StateMachine.State==RoomUserState.Play);}
+    public int GetNumResultPlayer(UserListType type=UserListType.Game){lock(_gate)return Users(type).Values.Count(x=>x.StateMachine.State==RoomUserState.Result);}
+    public int GetNumReadyPlayer(UserListType type=UserListType.Game){lock(_gate)return Users(type).Values.Count(x=>x.IsReady);}
+    public int GetLiveMember(UserListType type=UserListType.Game){lock(_gate)return Users(type).Values.Count(x=>!x.IsDie);}
+    public int GetTeamNumPlaying(int team,UserListType type=UserListType.Game){lock(_gate)return Users(type).Values.Count(x=>x.Team==team&&x.StateMachine.State==RoomUserState.Play);}
+    public bool AddUser(RoomUser user,UserListType type=UserListType.Game){ArgumentNullException.ThrowIfNull(user);lock(_gate){var users=Users(type);if(users.ContainsKey(user.UnitUid))return false;users[user.UnitUid]=user;return true;}}
+    public bool DeleteUser(long unitUid,UserListType type=UserListType.Game){lock(_gate){var users=Users(type);if(!users.TryGetValue(unitUid,out var user))return false;Slots(type).FirstOrDefault(x=>ReferenceEquals(x.User,user))?.Leave();return users.Remove(unitUid);}}
+    public bool EnterRoom(RoomUser user,bool considerTeam=true,UserListType type=UserListType.Game){ArgumentNullException.ThrowIfNull(user);lock(_gate){var users=Users(type);if(users.ContainsKey(user.UnitUid))return false;var slots=Slots(type);RoomSlot? slot=null;if(considerTeam)slot=slots.FirstOrDefault(x=>x.IsOpened&&!x.IsOccupied&&x.Team==ChooseTeamInternal(users));slot??=slots.FirstOrDefault(x=>x.IsOpened&&!x.IsOccupied);if(slot is null||!slot.Enter(user))return false;if(users.Count==0&&type==UserListType.Game)user.SetHost(true);users.Add(user.UnitUid,user);return true;}}
+    public bool LeaveRoom(long unitUid,UserListType type=UserListType.Game)=>DeleteUser(unitUid,type);
+    public bool ChangeTeam(long unitUid,int destinationTeam,UserListType type=UserListType.Game){lock(_gate){var user=GetUserUnsafe(unitUid,type);if(user is null)return false;var source=Slots(type).FirstOrDefault(x=>ReferenceEquals(x.User,user));var destination=Slots(type).FirstOrDefault(x=>x.IsOpened&&!x.IsOccupied&&x.Team==destinationTeam);if(source is null||destination is null)return false;source.Leave();return destination.Enter(user);}}
+    public bool SetReady(long unitUid,bool ready,UserListType type=UserListType.Game){lock(_gate)return GetUserUnsafe(unitUid,type)?.SetReady(ready)==true;}
+    public bool SetPitIn(long unitUid,bool value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetPitIn(value);return true;}}
+    public bool SetTrade(long unitUid,bool value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetTrade(value);return true;}}
+    public bool SetLoadingProgress(long unitUid,int value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetLoadingProgress(value);return true;}}
+    public bool SetStageLoaded(long unitUid,bool value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetStageLoaded(value);return true;}}
+    public bool SetDie(long unitUid,bool value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetDie(value);return true;}}
+    public bool SetHP(long unitUid,float value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetHP(value);return true;}}
+    public bool IncreaseNumKill(long unitUid,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.IncreaseKill();return true;}}
+    public bool IncreaseNumMDKill(long unitUid,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.IncreaseMDKill();return true;}}
+    public bool IncreaseNumDie(long unitUid,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.IncreaseDie();return true;}}
+    public bool SetStageId(long unitUid,int value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetStage(value);return true;}}
+    public bool SetSubStageId(long unitUid,int value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetSubStage(value);return true;}}
+    public bool SetRebirthPos(long unitUid,int value,UserListType type=UserListType.Game){lock(_gate){var u=GetUserUnsafe(unitUid,type);if(u is null)return false;u.SetRebirthPos(value);return true;}}
+    public void StartGame(UserListType type=UserListType.Game){lock(_gate)foreach(var u in Users(type).Values)u.StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartPlay(UserListType type=UserListType.Game){lock(_gate)foreach(var u in Users(type).Values)u.StateMachine.Send(RoomUserInput.ToPlay);}
+    public void StartResult(UserListType type=UserListType.Game){lock(_gate)foreach(var u in Users(type).Values)u.StateMachine.Send(RoomUserInput.ToResult);}
+    public void EndPlay(UserListType type=UserListType.Game){lock(_gate)foreach(var u in Users(type).Values)u.StateMachine.Send(RoomUserInput.ToResult);}
+    public void EndGame(UserListType type=UserListType.Game){lock(_gate)foreach(var u in Users(type).Values)u.StateMachine.Send(RoomUserInput.ToInit);}
+    public bool IsAllPlayerReady(UserListType type=UserListType.Game){lock(_gate){var v=Users(type).Values;return v.Any()&&v.All(x=>x.IsReady);}}
+    public bool IsAllPlayerFinishLoading(UserListType type=UserListType.Game){lock(_gate){var v=Users(type).Values;return v.Any()&&v.All(x=>x.LoadingProgress>=100);}}
+    public bool IsAllPlayerStageLoaded(UserListType type=UserListType.Game){lock(_gate){var v=Users(type).Values;return v.Any()&&v.All(x=>x.IsStageLoaded);}}
+    public bool IsAllPlayerAlive(UserListType type=UserListType.Game){lock(_gate){var v=Users(type).Values;return v.Any()&&v.All(x=>!x.IsDie);}}
+    public bool IsAllPlayerDie(UserListType type=UserListType.Game){lock(_gate){var v=Users(type).Values;return v.Any()&&v.All(x=>x.IsDie);}}
+    public bool OpenSlot(int slotId,UserListType type=UserListType.Game){lock(_gate)return GetSlotUnsafe(slotId,type)?.Open()==true;}
+    public bool CloseSlot(int slotId,UserListType type=UserListType.Game){lock(_gate)return GetSlotUnsafe(slotId,type)?.Close()==true;}
+    public bool ToggleOpenClose(int slotId,UserListType type=UserListType.Game){lock(_gate)return GetSlotUnsafe(slotId,type)?.ToggleOpenClose()==true;}
+    public IReadOnlyList<RoomSlotInfo> GetRoomSlotInfo(UserListType type=UserListType.Game){lock(_gate)return Slots(type).Select(x=>x.GetRoomSlotInfo()).ToArray();}
+    public void AssignTeam(int gameMode){lock(_gate){_gameMode=gameMode;AssignTeamInternal(_gameSlots);AssignTeamInternal(_observerSlots);}}
+    public void Reset(UserListType type=UserListType.Game){lock(_gate)ResetInternal(type);}
+    private List<RoomSlot> Slots(UserListType type)=>type==UserListType.Game?_gameSlots:_observerSlots;
+    private Dictionary<long,RoomUser> Users(UserListType type)=>type==UserListType.Game?_gameUsers:_observerUsers;
+    private RoomUser? GetUserUnsafe(long id,UserListType type)=>Users(type).TryGetValue(id,out var u)?u:null;
+    private RoomSlot? GetSlotUnsafe(int id,UserListType type){var s=Slots(type);return id>=0&&id<s.Count?s[id]:null;}
+    private void ResetInternal(UserListType type){foreach(var s in Slots(type))s.ResetSlot();Users(type).Clear();}
+    private void AssignTeamInternal(IEnumerable<RoomSlot> slots){foreach(var s in slots)s.AssignTeam(_gameMode);}
+    private static int ChooseTeamInternal(Dictionary<long,RoomUser> users){var red=users.Values.Count(x=>x.Team==0);var blue=users.Values.Count(x=>x.Team==1);return red<=blue?0:1;}
+}
