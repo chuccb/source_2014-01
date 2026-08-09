@@ -1,41 +1,32 @@
+using System.Collections.ObjectModel;
 using System.IO.Compression;
 
 namespace KncWX2Server.Protocol;
 
-/// <summary>
-/// Managed port of KSerBuffer. The native class stores an append-only byte
-/// buffer plus an independent read cursor; serialization does not persist the
-/// read cursor.
-/// </summary>
+/// <summary>Managed port of native KSerBuffer byte storage/read-cursor semantics.</summary>
 public sealed class KSerBuffer : IEquatable<KSerBuffer>
 {
-    private readonly List<byte> _buffer = [];
+    private List<byte> _buffer = [];
     private int _readOffset;
     private bool _compressed;
 
     public int Length => _buffer.Count;
     public int ReadLength => _buffer.Count - _readOffset;
     public bool IsCompressed => _compressed;
-    public ReadOnlyMemory<byte> Data => System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_buffer).ToArray();
+    public ReadOnlyMemory<byte> Data => [.. _buffer];
     public ReadOnlyCollection<byte> Buffer => _buffer.AsReadOnly();
 
     public bool Write(ReadOnlySpan<byte> data)
     {
-        if (data.IsEmpty)
-            throw new ArgumentException("Native KSerBuffer::Write requires len > 0.", nameof(data));
-
-        foreach (byte value in data)
-            _buffer.Add(value);
+        if (data.IsEmpty) throw new ArgumentException("Native KSerBuffer::Write requires len > 0.", nameof(data));
+        foreach (byte value in data) _buffer.Add(value);
         return true;
     }
 
     public bool Read(Span<byte> destination)
     {
-        if (destination.IsEmpty)
-            throw new ArgumentException("Native KSerBuffer::Read requires len > 0.", nameof(destination));
-        if (destination.Length > ReadLength)
-            return false;
-
+        if (destination.IsEmpty) throw new ArgumentException("Native KSerBuffer::Read requires len > 0.", nameof(destination));
+        if (destination.Length > ReadLength) return false;
         _buffer.AsSpan(_readOffset, destination.Length).CopyTo(destination);
         _readOffset += destination.Length;
         return true;
@@ -50,6 +41,8 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
 
     public void Reset() => _readOffset = 0;
 
+    internal void MarkCompressed() => _compressed = true;
+
     public KSerBuffer Clone() => new(this);
 
     public void Swap(KSerBuffer other)
@@ -62,16 +55,11 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
 
     public bool Compress()
     {
-        if (_compressed)
-            return true;
-
+        if (_compressed) return true;
         byte[] source = [.. _buffer];
         using var output = new MemoryStream();
-        // zlib's compress2() writes a zlib stream. ZLibStream is deliberately
-        // used instead of DeflateStream so the framing matches that contract.
         using (var zlib = new ZLibStream(output, CompressionLevel.Fastest, leaveOpen: true))
             zlib.Write(source);
-
         byte[] compressed = output.ToArray();
         Clear();
         Write(BitConverter.GetBytes(source.Length));
@@ -82,22 +70,14 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
 
     public bool UnCompress()
     {
-        if (!_compressed)
-            return true;
-
+        if (!_compressed) return true;
         Reset();
-        Span<byte> sizeBytes = stackalloc byte[sizeof(int)];
-        if (!Read(sizeBytes))
-            return false;
-
+        Span<byte> sizeBytes = stackalloc byte[4];
+        if (!Read(sizeBytes)) return false;
         int originalSize = BitConverter.ToInt32(sizeBytes);
-        if (originalSize < 0 || originalSize > 256 * 1024 * 1024)
-            return false;
-
+        if (originalSize < 0 || originalSize > 256 * 1024 * 1024) return false;
         byte[] compressed = new byte[ReadLength];
-        if (!Read(compressed))
-            return false;
-
+        if (!Read(compressed)) return false;
         try
         {
             using var input = new MemoryStream(compressed, writable: false);
@@ -105,17 +85,12 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
             using var output = new MemoryStream(originalSize);
             zlib.CopyTo(output);
             byte[] decompressed = output.ToArray();
-            if (decompressed.Length != originalSize)
-                return false;
-
+            if (decompressed.Length != originalSize) return false;
             Clear();
             Write(decompressed);
             return true;
         }
-        catch (InvalidDataException)
-        {
-            return false;
-        }
+        catch (InvalidDataException) { return false; }
     }
 
     public bool Equals(KSerBuffer? other) => other is not null && _buffer.SequenceEqual(other._buffer);
@@ -124,7 +99,7 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
 
     private KSerBuffer(KSerBuffer other)
     {
-        _buffer.AddRange(other._buffer);
+        _buffer = [.. other._buffer];
         _readOffset = other._readOffset;
         _compressed = other._compressed;
     }
