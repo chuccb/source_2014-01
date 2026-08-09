@@ -9,7 +9,11 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
 {
     private readonly NativePrimitiveSerializer _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 
-    public void PutPair<T1, T2>(T1 first, T2 second, Action<NativePrimitiveSerializer, T1> putFirst, Action<NativePrimitiveSerializer, T2> putSecond)
+    public void PutPair<T1, T2>(
+        T1 first,
+        T2 second,
+        Action<NativePrimitiveSerializer, T1> putFirst,
+        Action<NativePrimitiveSerializer, T2> putSecond)
     {
         ArgumentNullException.ThrowIfNull(putFirst);
         ArgumentNullException.ThrowIfNull(putSecond);
@@ -18,34 +22,50 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         putSecond(_serializer, second);
     }
 
-    public void PutVector<T>(IReadOnlyCollection<T> values, Action<NativePrimitiveSerializer, T> put)
-        => PutRange(NativePrimitiveSerializer.TagVector, values, put);
+    public void PutVector<T>(
+        IReadOnlyCollection<T> values,
+        Action<NativePrimitiveSerializer, T> put) =>
+        PutRange(NativePrimitiveSerializer.TagVector, values, put);
 
-    public void PutList<T>(IReadOnlyCollection<T> values, Action<NativePrimitiveSerializer, T> put)
-        => PutRange(NativePrimitiveSerializer.TagList, values, put);
+    public void PutList<T>(
+        IReadOnlyCollection<T> values,
+        Action<NativePrimitiveSerializer, T> put) =>
+        PutRange(NativePrimitiveSerializer.TagList, values, put);
 
-    public void PutDeque<T>(IReadOnlyCollection<T> values, Action<NativePrimitiveSerializer, T> put)
-        => PutRange(NativePrimitiveSerializer.TagDeque, values, put);
+    public void PutDeque<T>(
+        IReadOnlyCollection<T> values,
+        Action<NativePrimitiveSerializer, T> put) =>
+        PutRange(NativePrimitiveSerializer.TagDeque, values, put);
 
-    public void PutSet<T>(IEnumerable<T> values, Action<NativePrimitiveSerializer, T> put, IComparer<T>? comparer = null)
-        => PutRange(NativePrimitiveSerializer.TagSet, SortUnique(values, comparer), put);
+    public void PutSet<T>(
+        IEnumerable<T> values,
+        Action<NativePrimitiveSerializer, T> put,
+        IComparer<T>? comparer = null) =>
+        PutRange(NativePrimitiveSerializer.TagSet, SortUnique(values, comparer), put);
 
-    public void PutMultiSet<T>(IEnumerable<T> values, Action<NativePrimitiveSerializer, T> put, IComparer<T>? comparer = null)
-        => PutRange(NativePrimitiveSerializer.TagMultiSet, Sort(values, comparer), put);
+    public void PutMultiSet<T>(
+        IEnumerable<T> values,
+        Action<NativePrimitiveSerializer, T> put,
+        IComparer<T>? comparer = null) =>
+        PutRange(NativePrimitiveSerializer.TagMultiSet, Sort(values, comparer), put);
 
-    public void PutMap<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> values,
+    public void PutMap<TKey, TValue>(
+        IEnumerable<KeyValuePair<TKey, TValue>> values,
         Action<NativePrimitiveSerializer, TKey> putKey,
         Action<NativePrimitiveSerializer, TValue> putValue,
-        IComparer<TKey>? comparer = null)
-        => PutMapRange(NativePrimitiveSerializer.TagMap, SortMap(values, comparer), putKey, putValue);
+        IComparer<TKey>? comparer = null) =>
+        PutMapRange(NativePrimitiveSerializer.TagMap, SortMap(values, comparer), putKey, putValue);
 
-    public void PutMultiMap<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> values,
+    public void PutMultiMap<TKey, TValue>(
+        IEnumerable<KeyValuePair<TKey, TValue>> values,
         Action<NativePrimitiveSerializer, TKey> putKey,
         Action<NativePrimitiveSerializer, TValue> putValue,
-        IComparer<TKey>? comparer = null)
-        => PutMapRange(NativePrimitiveSerializer.TagMultiMap, SortMap(values, comparer), putKey, putValue);
+        IComparer<TKey>? comparer = null) =>
+        PutMapRange(NativePrimitiveSerializer.TagMultiMap, SortMap(values, comparer), putKey, putValue);
 
-    public bool TryGetPair<T1, T2>(out T1 first, out T2 second,
+    public bool TryGetPair<T1, T2>(
+        out T1 first,
+        out T2 second,
         Func<NativePrimitiveSerializer, (bool Ok, T1 Value)> getFirst,
         Func<NativePrimitiveSerializer, (bool Ok, T2 Value)> getSecond)
     {
@@ -69,19 +89,29 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         return true;
     }
 
-    public bool TryGetVector<T>(out List<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
-        => TryGetRange(NativePrimitiveSerializer.TagVector, out values, get);
+    public bool TryGetVector<T>(
+        out List<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get) =>
+        TryGetRange(NativePrimitiveSerializer.TagVector, out values, get);
 
-    public bool TryGetList<T>(out List<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
-        => TryGetRange(NativePrimitiveSerializer.TagList, out values, get);
+    public bool TryGetList<T>(
+        out List<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get) =>
+        TryGetRange(NativePrimitiveSerializer.TagList, out values, get);
 
-    public bool TryGetDeque<T>(out List<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
-        => TryGetRange(NativePrimitiveSerializer.TagDeque, out values, get);
+    public bool TryGetDeque<T>(
+        out List<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get) =>
+        TryGetRange(NativePrimitiveSerializer.TagDeque, out values, get);
 
-    public bool TryGetSet<T>(out SortedSet<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get, IComparer<T>? comparer = null)
+    public bool TryGetSet<T>(
+        out SortedSet<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get,
+        IComparer<T>? comparer = null)
     {
         ArgumentNullException.ThrowIfNull(get);
         values = new SortedSet<T>(comparer);
+
         if (!TryReadCount(NativePrimitiveSerializer.TagSet, out var count))
             return false;
 
@@ -90,16 +120,20 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
             var result = get(_serializer);
             if (!result.Ok)
                 return false;
+
             values.Add(result.Value);
         }
 
         return true;
     }
 
-    public bool TryGetMultiSet<T>(out List<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
-        => TryGetRange(NativePrimitiveSerializer.TagMultiSet, out values, get);
+    public bool TryGetMultiSet<T>(
+        out List<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get) =>
+        TryGetRange(NativePrimitiveSerializer.TagMultiSet, out values, get);
 
-    public bool TryGetMap<TKey, TValue>(out SortedDictionary<TKey, TValue> values,
+    public bool TryGetMap<TKey, TValue>(
+        out SortedDictionary<TKey, TValue> values,
         Func<NativePrimitiveSerializer, (bool Ok, TKey Value)> getKey,
         Func<NativePrimitiveSerializer, (bool Ok, TValue Value)> getValue,
         IComparer<TKey>? comparer = null)
@@ -117,6 +151,7 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
             var key = getKey(_serializer);
             if (!key.Ok)
                 return false;
+
             var value = getValue(_serializer);
             if (!value.Ok)
                 return false;
@@ -128,7 +163,8 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         return true;
     }
 
-    public bool TryGetMultiMap<TKey, TValue>(out List<KeyValuePair<TKey, TValue>> values,
+    public bool TryGetMultiMap<TKey, TValue>(
+        out List<KeyValuePair<TKey, TValue>> values,
         Func<NativePrimitiveSerializer, (bool Ok, TKey Value)> getKey,
         Func<NativePrimitiveSerializer, (bool Ok, TValue Value)> getValue)
     {
@@ -144,16 +180,21 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
             var key = getKey(_serializer);
             if (!key.Ok)
                 return false;
+
             var value = getValue(_serializer);
             if (!value.Ok)
                 return false;
+
             values.Add(new(key.Value, value.Value));
         }
 
         return true;
     }
 
-    private void PutRange<T>(byte tag, IEnumerable<T> values, Action<NativePrimitiveSerializer, T> put)
+    private void PutRange<T>(
+        byte tag,
+        IEnumerable<T> values,
+        Action<NativePrimitiveSerializer, T> put)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(put);
@@ -166,7 +207,9 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
             put(_serializer, value);
     }
 
-    private void PutMapRange<TKey, TValue>(byte tag, IEnumerable<KeyValuePair<TKey, TValue>> values,
+    private void PutMapRange<TKey, TValue>(
+        byte tag,
+        IEnumerable<KeyValuePair<TKey, TValue>> values,
         Action<NativePrimitiveSerializer, TKey> putKey,
         Action<NativePrimitiveSerializer, TValue> putValue)
     {
@@ -185,35 +228,41 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         }
     }
 
-    private bool TryGetRange<T>(byte tag, out List<T> values, Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
+    private bool TryGetRange<T>(
+        byte tag,
+        out List<T> values,
+        Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
     {
         ArgumentNullException.ThrowIfNull(get);
         values = [];
+
         if (!TryReadCount(tag, out var count))
             return false;
-        if (count > int.MaxValue)
-            return false;
 
-        values = new List<T>((int)count);
+        values = new List<T>(count);
         for (var i = 0; i < count; i++)
         {
             var result = get(_serializer);
             if (!result.Ok)
                 return false;
+
             values.Add(result.Value);
         }
 
         return true;
     }
 
-    private bool TryReadCount(byte tag, out uint count)
+    private bool TryReadCount(byte tag, out int count)
     {
-        if (!_serializer.ReadCollectionTag(tag) || !_serializer.TryGet(out count))
+        if (!_serializer.ReadCollectionTag(tag) ||
+            !_serializer.TryGet(out uint rawCount) ||
+            rawCount > int.MaxValue)
         {
             count = default;
             return false;
         }
 
+        count = (int)rawCount;
         return true;
     }
 
@@ -226,8 +275,7 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
     private static IEnumerable<T> SortUnique<T>(IEnumerable<T> values, IComparer<T>? comparer)
     {
         ArgumentNullException.ThrowIfNull(values);
-        var set = new SortedSet<T>(values, comparer);
-        return set;
+        return new SortedSet<T>(values, comparer);
     }
 
     private static IEnumerable<KeyValuePair<TKey, TValue>> SortMap<TKey, TValue>(
