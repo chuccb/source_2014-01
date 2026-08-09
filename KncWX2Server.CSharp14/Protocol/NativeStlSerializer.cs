@@ -110,20 +110,27 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         IComparer<T>? comparer = null)
     {
         ArgumentNullException.ThrowIfNull(get);
-        values = new SortedSet<T>(comparer);
+        var parsedValues = new SortedSet<T>(comparer);
 
         if (!TryReadCount(NativePrimitiveSerializer.TagSet, out var count))
+        {
+            values = [];
             return false;
+        }
 
         for (var i = 0; i < count; i++)
         {
             var result = get(_serializer);
             if (!result.Ok)
+            {
+                values = [];
                 return false;
+            }
 
-            values.Add(result.Value);
+            parsedValues.Add(result.Value);
         }
 
+        values = parsedValues;
         return true;
     }
 
@@ -141,25 +148,35 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(getKey);
         ArgumentNullException.ThrowIfNull(getValue);
-        values = new SortedDictionary<TKey, TValue>(comparer);
+        var parsedValues = new SortedDictionary<TKey, TValue>(comparer);
 
         if (!TryReadCount(NativePrimitiveSerializer.TagMap, out var count))
+        {
+            values = [];
             return false;
+        }
 
         for (var i = 0; i < count; i++)
         {
             var key = getKey(_serializer);
             if (!key.Ok)
+            {
+                values = [];
                 return false;
+            }
 
             var value = getValue(_serializer);
             if (!value.Ok)
+            {
+                values = [];
                 return false;
+            }
 
             // Native std::map::insert() does not replace an existing key.
-            values.TryAdd(key.Value, value.Value);
+            parsedValues.TryAdd(key.Value, value.Value);
         }
 
+        values = parsedValues;
         return true;
     }
 
@@ -170,24 +187,34 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
     {
         ArgumentNullException.ThrowIfNull(getKey);
         ArgumentNullException.ThrowIfNull(getValue);
-        values = [];
+        var parsedValues = new List<KeyValuePair<TKey, TValue>>();
 
         if (!TryReadCount(NativePrimitiveSerializer.TagMultiMap, out var count))
+        {
+            values = [];
             return false;
+        }
 
         for (var i = 0; i < count; i++)
         {
             var key = getKey(_serializer);
             if (!key.Ok)
+            {
+                values = [];
                 return false;
+            }
 
             var value = getValue(_serializer);
             if (!value.Ok)
+            {
+                values = [];
                 return false;
+            }
 
-            values.Add(new(key.Value, value.Value));
+            parsedValues.Add(new(key.Value, value.Value));
         }
 
+        values = parsedValues;
         return true;
     }
 
@@ -234,21 +261,28 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         Func<NativePrimitiveSerializer, (bool Ok, T Value)> get)
     {
         ArgumentNullException.ThrowIfNull(get);
-        values = [];
+        var parsedValues = new List<T>();
 
         if (!TryReadCount(tag, out var count))
+        {
+            values = [];
             return false;
+        }
 
-        values = new List<T>(count);
+        parsedValues.Capacity = count;
         for (var i = 0; i < count; i++)
         {
             var result = get(_serializer);
             if (!result.Ok)
+            {
+                values = [];
                 return false;
+            }
 
-            values.Add(result.Value);
+            parsedValues.Add(result.Value);
         }
 
+        values = parsedValues;
         return true;
     }
 
