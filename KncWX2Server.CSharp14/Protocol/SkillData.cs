@@ -16,7 +16,7 @@ public sealed class KUnitSkillData
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return new NativeUserClassSerializer(serializer).Put(this, static (ser, value, options) =>
+        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
             foreach (var skill in value.EquippedSkill)
                 skill.Serialize(ser);
@@ -37,7 +37,7 @@ public sealed class KUnitSkillData
                 stl.PutVector(value.SkillNote, PutInt32);
 
             return true;
-        }, options);
+        });
     }
 
     public static bool TryDeserialize(
@@ -49,7 +49,7 @@ public sealed class KUnitSkillData
 
         value = new();
 
-        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, existing, options) =>
+        return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
             for (var i = 0; i < EquippedSkillCount; i++)
             {
@@ -105,7 +105,7 @@ public sealed class KUnitSkillData
             existing.SkillNote.AddRange(skillNote);
 
             return (true, existing);
-        }, options);
+        });
     }
 
     private static void SerializeSkill(
