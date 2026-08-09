@@ -18,7 +18,13 @@ public sealed partial class RoomUser
             return MissingPingScore;
         }
 
-        return (uint)_pingScores.Average(static score => score);
+        uint total = 0;
+        foreach (var score in _pingScores)
+        {
+            total = unchecked(total + score);
+        }
+
+        return total / (uint)_pingScores.Count;
     }
 
     public void ClearPingScore()
