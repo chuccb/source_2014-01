@@ -32,8 +32,7 @@ public sealed class RoomUser
     public int RewardEXP { get; private set; }
     public int RewardPartyEXP { get; private set; }
     public int UsedResurrectionStoneCount { get; private set; }
-    public bool LoadingProgress { get; private set; }
-    public int LoadingProgressValue { get; private set; }=-1;
+    public int LoadingProgress { get; private set; }=-1;
     public bool IsStageLoaded { get; private set; }
     public int NumKill { get; private set; }
     public int NumMDKill { get; private set; }
@@ -83,7 +82,7 @@ public sealed class RoomUser
     public void SetRewardEXP(int value)=>RewardEXP=value;
     public void SetRewardPartyEXP(int value)=>RewardPartyEXP=value;
     public void SetUsedResurrectionStoneCount(int value)=>UsedResurrectionStoneCount=Math.Max(0,value);
-    public void SetLoadingProgress(int value){LoadingProgressValue=value;LoadingProgress=value>=0;}
+    public void SetLoadingProgress(int value)=>LoadingProgress=value;
     public void SetStageLoaded(bool value)=>IsStageLoaded=value;
     public void IncreaseKill()=>NumKill++;
     public void IncreaseMDKill()=>NumMDKill++;
@@ -107,9 +106,9 @@ public sealed class RoomUser
     public bool SetZombieAlert(bool value){ZombieAlert=value;return true;}
     public bool SetEndPlay(bool value){EndPlayFlag=value;return true;}
     public bool SetCashContinueReady(bool value){CashContinueReady=value;return true;}
-    public void StartGame(){LoadingProgressValue=0;LoadingProgress=true;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
-    public void StartPlay(){LoadingProgressValue=-1;LoadingProgress=false;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
-    public void EndPlay(){LoadingProgressValue=0;LoadingProgress=true;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;EndPlayFlag=true;StateMachine.Send(RoomUserInput.ToResult);}
-    public void EndGame(){SetReady(false);LoadingProgressValue=-1;LoadingProgress=false;IsStageLoaded=false;IsSuccessResult=true;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToInit);}
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartPlay(){LoadingProgress=-1;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
+    public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;EndPlayFlag=true;StateMachine.Send(RoomUserInput.ToResult);}
+    public void EndGame(){SetReady(false);LoadingProgress=-1;IsStageLoaded=false;IsSuccessResult=true;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToInit);}
     public int GetPercentHP(int baseHp)=>baseHp<=0?0:(int)(HP*100f/baseHp);
 }
