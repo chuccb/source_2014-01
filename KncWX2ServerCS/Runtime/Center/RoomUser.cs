@@ -7,7 +7,7 @@ public sealed class RoomUser
     public const double TradeRequestTimeoutSeconds=10.0;
     public const int SecretStageNone=0;
     public const int SecretStageAgree=1;
-    private readonly Dictionary<long, System.Diagnostics.Stopwatch> _tradeRequests=new();
+    private readonly Dictionary<long,System.Diagnostics.Stopwatch> _tradeRequests=new();
     private readonly Dictionary<int,int> _receivedItems=new();
     public long GSUid { get; set; }
     public long UserUid { get; set; }
@@ -109,7 +109,7 @@ public sealed class RoomUser
     public void SetEnterDefenceDungeon(bool value)=>IsEnterDefenceDungeon=value;
     public void SetMatchWaitTime(int value)=>MatchWaitTime=value;
     public void SetAutoPartyWaitTime(int value)=>AutoPartyWaitTime=value;
-    public void SetRidingPetInfo(long petUid, ushort petId){RidingPetUid=petUid;RidingPetId=petId;}
+    public void SetRidingPetInfo(long petUid,ushort petId){RidingPetUid=petUid;RidingPetId=petId;}
     public bool SetBattleFieldNpcLoad(bool value){BattleFieldNpcLoad=value;return true;}
     public bool SetBattleFieldNpcSyncSubjects(bool value){BattleFieldNpcSyncSubjects=value;return true;}
     public bool SetHenirReward(bool value){IsHenirReward=value;return true;}
@@ -117,13 +117,13 @@ public sealed class RoomUser
     public bool SetZombieAlert(bool value){ZombieAlert=value;return true;}
     public bool SetEndPlay(bool value){EndPlayFlag=value;return true;}
     public bool SetCashContinueReady(bool value){CashContinueReady=value;return true;}
-    public bool RequestTradeTo(long cid){if(_tradeRequests.Count==0&&IsInTrade)return false;if(_tradeRequests.ContainsKey(cid))return false;var timer=System.Diagnostics.Stopwatch.StartNew();_tradeRequests.Add(cid,timer);SetTrade(true);return true;}
+    public bool RequestTradeTo(long cid){if(_tradeRequests.Count==0&&IsInTrade)return false;if(_tradeRequests.ContainsKey(cid))return false;_tradeRequests.Add(cid,System.Diagnostics.Stopwatch.StartNew());SetTrade(true);return true;}
     public bool TradeAcceptedBy(long cid){if(!_tradeRequests.ContainsKey(cid))return false;_tradeRequests.Clear();return true;}
     public bool TradeRejectedBy(long cid){if(!_tradeRequests.Remove(cid))return false;if(_tradeRequests.Count==0)SetTrade(false);return true;}
     public bool ExpireTradeRequests(){var hadRequests=_tradeRequests.Count>0;foreach(var pair in _tradeRequests.Where(x=>x.Value.Elapsed.TotalSeconds>TradeRequestTimeoutSeconds).ToArray())_tradeRequests.Remove(pair.Key);if(hadRequests&&_tradeRequests.Count==0){SetTrade(false);return true;}return false;}
-    public void AddItem(int itemId,int quantity){if(quantity<=0)throw new ArgumentOutOfRangeException(nameof(quantity));_receivedItems[itemId]=_receivedItems.TryGetValue(itemId,out var count)?count+quantity:quantity;}
+    public void AddItem(int itemId,int quantity){if(quantity<=0)return;_receivedItems[itemId]=_receivedItems.TryGetValue(itemId,out var count)?count+quantity:quantity;}
     public int GetItemCount()=>_receivedItems.Values.Sum();
-    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;KillNpcCount=0;HP=-1f;IsSuccessResult=false;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;PassedStageCount=0;PassedSubStageCount=0;DungeonUnitInfoReceived=false;_receivedItems.Clear();_tradeRequests.Clear();IsInTrade=false;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;KillNpcCount=0;HP=-1f;IsSuccessResult=false;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;PassedStageCount=0;PassedSubStageCount=0;DungeonUnitInfoReceived=false;_receivedItems.Clear();BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
     public void StartPlay(){LoadingProgress=-1;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToPlay);}
     public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;EndPlayFlag=true;StateMachine.Send(RoomUserInput.ToResult);}
     public void EndGame(){SetReady(false);LoadingProgress=-1;StateMachine.Send(RoomUserInput.ToInit);}
