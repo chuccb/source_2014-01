@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KncWX2Server.ServerHost", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KncWX2Server.Protocol.Tests", "Protocol.Tests\KncWX2Server.Protocol.Tests.csproj", "{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KncWX2Server.Runtime", "Runtime\KncWX2Server.Runtime.csproj", "{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0005}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,7 +32,12 @@ Global
 		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0003}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0004}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0005}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0005}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0005}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D9C1A8D0-0F8C-4F10-8B3B-6D1A8C4B0005}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
