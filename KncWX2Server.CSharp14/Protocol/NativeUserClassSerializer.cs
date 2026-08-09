@@ -3,17 +3,17 @@ namespace KncWX2Server.CSharp14.Protocol;
 /// <summary>
 /// Adapter for the native SERIALIZE_DEFINE_TAG / SERIALIZE_DEFINE_PUT / GET
 /// user-class convention. The native KSerializer writes eTAG_USERCLASS before
-/// invoking SerializeHelper::PutInto/GetFrom.
+/// invoking SerializeHelper::PutInto/GetFrom and propagates the helper's bool.
 /// </summary>
 public sealed class NativeUserClassSerializer(NativePrimitiveSerializer serializer)
 {
     private readonly NativePrimitiveSerializer _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 
-    public void Put<T>(T value, Action<NativePrimitiveSerializer, T> putInto)
+    public bool Put<T>(T value, Func<NativePrimitiveSerializer, T, bool> putInto)
     {
         ArgumentNullException.ThrowIfNull(putInto);
         _serializer.WriteCollectionTag(NativePrimitiveSerializer.TagUserClass);
-        putInto(_serializer, value);
+        return putInto(_serializer, value);
     }
 
     public bool TryGet<T>(out T value, Func<NativePrimitiveSerializer, (bool Ok, T Value)> getFrom)
