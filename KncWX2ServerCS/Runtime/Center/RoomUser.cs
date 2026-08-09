@@ -12,6 +12,7 @@ public sealed class RoomUser
 
     private readonly Dictionary<long, Stopwatch> _tradeRequests = [];
     private readonly Dictionary<int, int> _receivedItems = [];
+    private bool _ready;
 
     public long GSUid { get; set; }
     public long UserUid { get; set; }
@@ -30,7 +31,7 @@ public sealed class RoomUser
     public int SlotId { get; private set; } = -1;
 
     public bool IsHost { get; private set; }
-    public bool IsReady { get; private set; }
+    public bool IsReady => (IsHost || _ready) && !IsInTrade;
     public bool IsPitIn { get; private set; }
     public bool IsInTrade { get; private set; }
     public bool IsPvpNpc { get; private set; }
@@ -86,7 +87,6 @@ public sealed class RoomUser
 
     public bool IsPlaying => StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public bool IsOnlyPlaying => StateMachine.State is RoomUserState.Play;
-    public bool IsReadyForRoom => (IsHost || IsReady) && !IsInTrade;
 
     public void SetLevel(int level) => Level = level;
     public void SetUnitType(int unitType) => UnitType = unitType;
@@ -107,7 +107,7 @@ public sealed class RoomUser
             return false;
         }
 
-        IsReady = ready;
+        _ready = ready;
         return true;
     }
 
@@ -151,14 +151,15 @@ public sealed class RoomUser
     public void IncreaseMDKill() => NumMDKill++;
     public void IncreaseDie() => NumDie++;
     public void IncreaseKillNpc() => KillNpcCount++;
-
     public int GetKillNpcCountForLua() => Math.Max(1, KillNpcCount);
 
     public void SetDie(bool value) => IsDie = value;
     public void SetHP(float value) => HP = value;
     public void SetStage(int value) => StageId = value;
     public void SetSubStage(int value) => SubStageId = value;
+
     public void SetRebirthPos(int value) => RebirthPos = value;
+
     public void IncreasePassedStageCount()
     {
         PassedStageCount++;
