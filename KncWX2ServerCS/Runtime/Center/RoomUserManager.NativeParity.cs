@@ -99,6 +99,28 @@ public static class RoomUserManagerNativeParityExtensions
         return result;
     }
 
+    public static IReadOnlyList<long> GetUnitUIDList(this RoomUserManager manager, long excludedUnitUid = 0)
+        => EnumerateGameUnitUids(manager)
+            .Where(id => id != excludedUnitUid)
+            .Distinct()
+            .ToArray();
+
+    public static int GetUserLevel(this RoomUserManager manager, long unitUid)
+        => manager.GetUser(unitUid)?.Level ?? 1;
+
+    public static float GetPartyBonusRate(this RoomUserManager manager, int partyMemberCount)
+        => partyMemberCount switch
+        {
+            1 => 0.0f,
+            2 => 0.5f,
+            3 => 1.0f,
+            4 => 1.5f,
+            _ => 0.0f
+        };
+
+    public static IReadOnlyList<long> GetLiveMemberList(this RoomUserManager manager)
+        => EnumerateGameUnitUids(manager).Distinct().ToArray();
+
     private static IEnumerable<long> EnumerateGameUnitUids(RoomUserManager manager)
     {
         foreach (var group in manager.GetUserList(0, RoomUserManager.UserListType.Game).Values)
