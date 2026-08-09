@@ -185,6 +185,53 @@ public static class RoomUserManagerNativeParityExtensions
         }
     }
 
+    /// <summary>
+    /// Native overload: returns true only when every game user is prepared and has
+    /// answered the entry popup; users who explicitly declined are returned for removal.
+    /// </summary>
+    public static bool IsAllPlayerPrepareForDefenceDungeon(
+        this RoomUserManager manager,
+        out IReadOnlyList<long> leaveUnitUids)
+    {
+        var leave = new List<long>();
+        var users = EnumerateGameUnitUids(manager)
+            .Select(manager.GetUser)
+            .Where(u => u is not null)
+            .Cast<RoomUser>()
+            .ToArray();
+
+        if (users.Length == 0)
+        {
+            leaveUnitUids = leave;
+            return false;
+        }
+
+        foreach (var user in users)
+        {
+            if (!user.IsPrepareForDefence || !user.IsRecvEnterPopupReply)
+            {
+                leaveUnitUids = leave;
+                return false;
+            }
+
+            if (!user.IsEnterDefenceDungeon)
+                leave.Add(user.Cid);
+        }
+
+        leaveUnitUids = leave;
+        return true;
+    }
+
+    /// <summary>Native helper: only prepared users with a received popup reply can be declined.</summary>
+    public static IReadOnlyList<long> GetUnitUIDListDisagreeEnterDefenceDungeon(this RoomUserManager manager)
+        => EnumerateGameUnitUids(manager)
+            .Select(manager.GetUser)
+            .Where(u => u is not null)
+            .Cast<RoomUser>()
+            .Where(u => u.IsPrepareForDefence && u.IsRecvEnterPopupReply && !u.IsEnterDefenceDungeon)
+            .Select(u => u.Cid)
+            .ToArray();
+
     public static bool SetMatchWaitTime(this RoomUserManager manager, long unitUid, int value)
     {
         var user = manager.GetUser(unitUid);
