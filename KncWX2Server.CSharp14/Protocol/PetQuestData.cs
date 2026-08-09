@@ -113,8 +113,16 @@ public sealed class KPetInfo
             x.PetName = name; x.EvolutionStep = evolution; x.Satiety = satiety; x.Intimacy = intimacy;
             x.Extroversion = extroversion; x.Emotion = emotion; x.AutoFeed = autoFeed;
             x.LastFeedDate = lastFeed; x.LastSummonDate = lastSummon; x.RegDate = regDate; x.AutoLooting = autoLooting;
-            if (options.FreeAutoLooting && !ser.TryGet(out x.FreeAutoLooting)) return (false, x);
-            if (options.PeriodPet && !ser.TryGetWString(out x.DestroyDate)) return (false, x);
+            if (options.FreeAutoLooting)
+            {
+                if (!ser.TryGet(out bool freeAutoLooting)) return (false, x);
+                x.FreeAutoLooting = freeAutoLooting;
+            }
+            if (options.PeriodPet)
+            {
+                if (!ser.TryGetWString(out var destroyDate)) return (false, x);
+                x.DestroyDate = destroyDate;
+            }
             return (true, x);
         });
     }
