@@ -4,7 +4,6 @@ namespace KncWX2Server.CSharp14.Protocol;
 public sealed record ProtocolOptions
 {
     public static ProtocolOptions Default { get; } = new();
-
     public bool RelationshipSystem { get; init; }
     public bool DbConnectionSecurity { get; init; }
     public bool ToonilandChanneling { get; init; }
@@ -24,7 +23,6 @@ public sealed record ProtocolOptions
     public bool CountryTh { get; init; }
     public bool Steam { get; init; }
     public bool ChannelingAeria { get; init; }
-
     public bool PetSystem { get; init; }
     public bool PetIdDataTypeChange { get; init; }
     public bool PetAutoLooting { get; init; }
@@ -39,7 +37,6 @@ public sealed record ProtocolOptions
     public bool GuildSkillTest { get; init; }
     public bool SkillNote { get; init; }
     public bool DeleteItem { get; init; }
-
     public bool BattleFieldSystem { get; init; }
     public bool RidingPetSystm { get; init; }
     public bool ReformTheGateOfDarkness { get; init; }
@@ -48,7 +45,6 @@ public sealed record ProtocolOptions
     public bool PvpRematch { get; init; }
     public bool NewDefenceDungeon { get; init; }
     public bool ServerBuffSystem { get; init; }
-
     public bool PvpNewSystem { get; init; }
     public bool PvpSeason2 { get; init; }
     public bool DeleteRoomUserInfoData { get; init; }
@@ -63,7 +59,6 @@ public sealed record ProtocolOptions
     public bool GateOfDarknessSupportEvent { get; init; }
     public bool RelationshipEventInt { get; init; }
     public bool RecruitEventBase { get; init; }
-
     public bool PcBangType { get; init; }
     public bool TitleDataSize { get; init; }
     public bool GuildTest { get; init; }
@@ -73,4 +68,8 @@ public sealed record ProtocolOptions
     public bool ChinaSpiritEvent { get; init; }
     public bool RecruitEventQuestForNewUser { get; init; }
     public bool NewYearEvent2014 { get; init; }
+    public bool ServerGroupEventSystem { get; init; }
+    public bool ServerIntegration { get; init; }
+    public bool FromChannelToLoginProxy { get; init; }
+    public bool PvpBossCombatTest { get; init; }
 }
