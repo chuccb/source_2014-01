@@ -138,12 +138,8 @@ public sealed class RoomUser
 
     public void SetRingOfPvpRebirth(bool value) => IsRingOfPvpRebirth = value;
     public void SetRewardEXP(int value) => RewardEXP = value;
-
     public void SetRewardPartyEXP(int value) => RewardPartyEXP = value;
-
-    public void SetUsedResurrectionStoneCount(int value) =>
-        UsedResurrectionStoneCount = Math.Max(0, value);
-
+    public void SetUsedResurrectionStoneCount(int value) => UsedResurrectionStoneCount = Math.Max(0, value);
     public void SetLoadingProgress(int value) => LoadingProgress = value;
     public void SetStageLoaded(bool value) => IsStageLoaded = value;
     public void IncreaseKill() => NumKill++;
@@ -329,7 +325,7 @@ public sealed class RoomUser
         IsDie = false;
         HP = -1f;
         EndPlayFlag = false;
-        StateMachine.Send(RoomUserInputInput.ToPlay);
+        StateMachine.Send(RoomUserInput.ToPlay);
     }
 
     public void EndPlay()
