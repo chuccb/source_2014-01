@@ -227,7 +227,7 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         ArgumentNullException.ThrowIfNull(put);
         _serializer.WriteCollectionTag(tag);
 
-        var materialized = values as ICollection<T> ?? values.ToArray();
+        var materialized = Materialize(values);
         _serializer.Put(checked((uint)materialized.Count));
 
         foreach (var value in materialized)
@@ -245,7 +245,7 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         ArgumentNullException.ThrowIfNull(putValue);
         _serializer.WriteCollectionTag(tag);
 
-        var materialized = values as ICollection<KeyValuePair<TKey, TValue>> ?? values.ToArray();
+        var materialized = Materialize(values);
         _serializer.Put(checked((uint)materialized.Count));
 
         foreach (var pair in materialized)
@@ -299,6 +299,9 @@ public sealed class NativeStlSerializer(NativePrimitiveSerializer serializer)
         count = (int)rawCount;
         return true;
     }
+
+    private static IReadOnlyList<T> Materialize<T>(IEnumerable<T> values) =>
+        values as IReadOnlyList<T> ?? [.. values];
 
     private static IEnumerable<T> Sort<T>(IEnumerable<T> values, IComparer<T>? comparer)
     {
