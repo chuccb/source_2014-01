@@ -22,8 +22,8 @@ public sealed class KGamePlayStatus
 
     public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options)
     {
-        var stl = new NativeStlSerializer(serializer);
-        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
+        ArgumentNullException.ThrowIfNull(options);
+        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
             ser.Put(value.MaxHp);
             ser.Put(value.CurHp);
@@ -33,15 +33,66 @@ public sealed class KGamePlayStatus
             ser.Put(value.CurHyperCount);
             ser.Put(value.CharAbilType);
             ser.Put(value.CharAbilCount);
+
+            var stl = new NativeStlSerializer(ser);
+            stl.PutMap(value.SkillCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
+            stl.PutMap(value.QuickSlotCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
+            stl.PutSet(value.PetMp, static (s, item) => s.Put(item));
+            if (options.RidingPetSystm)
+                stl.PutMap(value.RidingPetCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
             return true;
         });
+    }
 
-        stl.PutMap(SkillCoolTime, static (s, key) => s.Put(key), static (s, value) => s.Put(value));
-        stl.PutMap(QuickSlotCoolTime, static (s, key) => s.Put(key), static (s, value) => s.Put(value));
-        stl.PutSet(PetMp, static (s, value) => s.Put(value));
-        if (options.RidingPetSystm)
-            stl.PutMap(RidingPetCoolTime, static (s, key) => s.Put(key), static (s, value) => s.Put(value));
-        return true;
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, ProtocolOptions options, out KGamePlayStatus value)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
+        {
+            if (!ser.TryGet(out int maxHp) || !ser.TryGet(out int curHp) || !ser.TryGet(out int maxMp) ||
+                !ser.TryGet(out int curMp) || !ser.TryGet(out int hyperGage) ||
+                !ser.TryGet(out sbyte hyperCount) || !ser.TryGet(out sbyte abilType) ||
+                !ser.TryGet(out int abilCount))
+                return (false, existing);
+
+            var stl = new NativeStlSerializer(ser);
+            if (!stl.TryGetMap(out var skillCoolTime,
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0),
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0)))
+                return (false, existing);
+            if (!stl.TryGetMap(out var quickSlotCoolTime,
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0),
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0)))
+                return (false, existing);
+            if (!stl.TryGetSet(out var petMp,
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0)))
+                return (false, existing);
+
+            SortedDictionary<int, int> ridingPetCoolTime = [];
+            if (options.RidingPetSystm && !stl.TryGetMap(out ridingPetCoolTime,
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0),
+                    static s => s.TryGet(out int v) ? (true, v) : (false, 0)))
+                return (false, existing);
+
+            existing.MaxHp = maxHp;
+            existing.CurHp = curHp;
+            existing.MaxMp = maxMp;
+            existing.CurMp = curMp;
+            existing.CurHyperGage = hyperGage;
+            existing.CurHyperCount = hyperCount;
+            existing.CharAbilType = abilType;
+            existing.CharAbilCount = abilCount;
+            existing.SkillCoolTime.Clear();
+            foreach (var pair in skillCoolTime) existing.SkillCoolTime[pair.Key] = pair.Value;
+            existing.QuickSlotCoolTime.Clear();
+            foreach (var pair in quickSlotCoolTime) existing.QuickSlotCoolTime[pair.Key] = pair.Value;
+            existing.PetMp.Clear();
+            foreach (var item in petMp) existing.PetMp.Add(item);
+            existing.RidingPetCoolTime.Clear();
+            foreach (var pair in ridingPetCoolTime) existing.RidingPetCoolTime[pair.Key] = pair.Value;
+            return (true, existing);
+        });
     }
 }
 
@@ -57,9 +108,33 @@ public sealed class KPartyMemberStatus
             ser.Put(value.MpPercent);
             return true;
         });
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KPartyMemberStatus value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, existing) =>
+        {
+            if (!ser.TryGet(out float hp) || !ser.TryGet(out float mp))
+                return (false, existing);
+            existing.HpPercent = hp;
+            existing.MpPercent = mp;
+            return (true, existing);
+        });
+    }
 }
 
 public sealed class KGamePlayStatusContainer
 {
     public List<KGamePlayStatus> GamePlayStatus { get; } = [];
+
+    public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
+        {
+            new NativeStlSerializer(ser).PutVector(value.GamePlayStatus,
+                (s, item) => item.Serialize(s, options));
+            return true;
+        });
+    }
 }
