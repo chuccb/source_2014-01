@@ -2,6 +2,7 @@ namespace KncWX2Server.Runtime.Center;
 
 public sealed class RoomUser
 {
+    public const int DefaultObserverSlotCount=3;
     public const double LoadingTimeoutSeconds=60.0;
     public long GSUid { get; set; }
     public long UserUid { get; set; }
@@ -14,6 +15,10 @@ public sealed class RoomUser
     public bool IsReady { get; private set; }
     public bool IsPitIn { get; private set; }
     public bool IsInTrade { get; private set; }
+    public bool IsPvpNpc { get; private set; }
+    public bool IsBoss { get; private set; }
+    public bool IsEnterCashShopUser { get; private set; }
+    public bool IsSuccessResult { get; private set; }=true;
     public int LoadingProgress { get; private set; }=-1;
     public bool IsStageLoaded { get; private set; }
     public int NumKill { get; private set; }
@@ -32,6 +37,10 @@ public sealed class RoomUser
     public bool SetReady(bool ready){IsReady=ready;return true;}
     public void SetPitIn(bool value)=>IsPitIn=value;
     public void SetTrade(bool value){IsInTrade=value;if(value)IsReady=false;}
+    public void SetPvpNpc(bool value)=>IsPvpNpc=value;
+    public void SetIsBoss(bool value)=>IsBoss=value;
+    public void SetEnterCashShopUser(bool value)=>IsEnterCashShopUser=value;
+    public void SetSuccessResult(bool value)=>IsSuccessResult=value;
     public void SetLoadingProgress(int value)=>LoadingProgress=value;
     public void SetStageLoaded(bool value)=>IsStageLoaded=value;
     public void IncreaseKill()=>NumKill++;
@@ -42,9 +51,9 @@ public sealed class RoomUser
     public void SetStage(int value)=>StageId=value;
     public void SetSubStage(int value)=>SubStageId=value;
     public void SetRebirthPos(int value)=>RebirthPos=value;
-    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;StateMachine.Send(RoomUserInput.ToLoad);}
-    public void StartPlay(){LoadingProgress=-1;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;StateMachine.Send(RoomUserInput.ToPlay);}
-    public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;RebirthPos=0;StateMachine.Send(RoomUserInput.ToResult);}
-    public void EndGame(){SetReady(false);LoadingProgress=-1;StateMachine.Send(RoomUserInput.ToInit);}
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartPlay(){LoadingProgress=-1;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
+    public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;StateMachine.Send(RoomUserInput.ToResult);}
+    public void EndGame(){SetReady(false);LoadingProgress=-1;IsStageLoaded=false;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToInit);}
     public int GetPercentHP(int baseHp)=>baseHp<=0?0:(int)(HP*100f/baseHp);
 }
