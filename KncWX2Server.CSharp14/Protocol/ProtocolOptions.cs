@@ -35,4 +35,6 @@ public sealed record ProtocolOptions
     public bool NewItemSystem201305 { get; init; }
     public bool GoldTicket { get; init; }
     public bool LimitedDungeonPlayTimes { get; init; }
+    public bool GuildSkillTest { get; init; }
+    public bool SkillNote { get; init; }
 }
