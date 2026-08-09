@@ -10,6 +10,7 @@ public sealed class KGamePlayStatus
     public sbyte CurHyperCount { get; set; }
     public sbyte CharAbilType { get; set; }
     public int CharAbilCount { get; set; }
+
     public SortedDictionary<int, int> SkillCoolTime { get; } = [];
     public SortedDictionary<int, int> QuickSlotCoolTime { get; } = [];
     public SortedSet<int> PetMp { get; } = [];
@@ -52,17 +53,8 @@ public sealed class KGamePlayStatus
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
-            if (!ser.TryGet(out int maxHp) ||
-                !ser.TryGet(out int curHp) ||
-                !ser.TryGet(out int maxMp) ||
-                !ser.TryGet(out int curMp) ||
-                !ser.TryGet(out int hyperGage) ||
-                !ser.TryGet(out sbyte hyperCount) ||
-                !ser.TryGet(out sbyte abilType) ||
-                !ser.TryGet(out int abilCount))
-            {
+            if (!TryReadPrimitiveFields(ser, out var fields))
                 return (false, existing);
-            }
 
             var stl = new NativeStlSerializer(ser);
 
@@ -80,14 +72,14 @@ public sealed class KGamePlayStatus
                 return (false, existing);
             }
 
-            existing.MaxHp = maxHp;
-            existing.CurHp = curHp;
-            existing.MaxMp = maxMp;
-            existing.CurMp = curMp;
-            existing.CurHyperGage = hyperGage;
-            existing.CurHyperCount = hyperCount;
-            existing.CharAbilType = abilType;
-            existing.CharAbilCount = abilCount;
+            existing.MaxHp = fields.MaxHp;
+            existing.CurHp = fields.CurHp;
+            existing.MaxMp = fields.MaxMp;
+            existing.CurMp = fields.CurMp;
+            existing.CurHyperGage = fields.CurHyperGage;
+            existing.CurHyperCount = fields.CurHyperCount;
+            existing.CharAbilType = fields.CharAbilType;
+            existing.CharAbilCount = fields.CharAbilCount;
 
             existing.SkillCoolTime.Clear();
             foreach (var pair in skillCool)
@@ -109,6 +101,45 @@ public sealed class KGamePlayStatus
         });
     }
 
+    private static bool TryReadPrimitiveFields(
+        NativePrimitiveSerializer serializer,
+        out PrimitiveFields fields)
+    {
+        if (!serializer.TryGet(out int maxHp) ||
+            !serializer.TryGet(out int curHp) ||
+            !serializer.TryGet(out int maxMp) ||
+            !serializer.TryGet(out int curMp) ||
+            !serializer.TryGet(out int hyperGage) ||
+            !serializer.TryGet(out sbyte hyperCount) ||
+            !serializer.TryGet(out sbyte abilType) ||
+            !serializer.TryGet(out int abilCount))
+        {
+            fields = default;
+            return false;
+        }
+
+        fields = new(
+            maxHp,
+            curHp,
+            maxMp,
+            curMp,
+            hyperGage,
+            hyperCount,
+            abilType,
+            abilCount);
+        return true;
+    }
+
+    private readonly record struct PrimitiveFields(
+        int MaxHp,
+        int CurHp,
+        int MaxMp,
+        int CurMp,
+        int CurHyperGage,
+        sbyte CurHyperCount,
+        sbyte CharAbilType,
+        int CharAbilCount);
+
     private static void PutInt(NativePrimitiveSerializer serializer, int value) => serializer.Put(value);
 
     private static (bool Ok, int Value) GetInt(NativePrimitiveSerializer serializer)
@@ -125,6 +156,7 @@ public sealed class KGamePlayStatusContainer
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        var stl = new NativeStlSerializer(serializer);
         return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
             new NativeStlSerializer(ser).PutVector(
@@ -144,7 +176,8 @@ public sealed class KGamePlayStatusContainer
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
-            if (!new NativeStlSerializer(ser).TryGetVector(
+            var stl = new NativeStlSerializer(ser);
+            if (!stl.TryGetVector(
                     out List<KGamePlayStatus> statuses,
                     s => KGamePlayStatus.TryDeserialize(s, options, out var item)
                         ? (true, item)
