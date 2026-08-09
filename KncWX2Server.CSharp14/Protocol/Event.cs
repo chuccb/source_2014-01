@@ -1,10 +1,9 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
-/// System event identifiers declared by EventID_System.h before the optional
-/// global-event include. Client/server lists are intentionally not invented here:
-/// the native headers are generated/configuration-dependent and are not present
-/// as standalone source files in this repository snapshot.
+/// System event identifiers declared by EventID_System.h. The native header's
+/// sentinel is part of the enum and is required as the beginning of the client
+/// event range, so it is retained explicitly here.
 /// </summary>
 public enum SystemEventId : ushort
 {
@@ -28,6 +27,7 @@ public enum SystemEventId : ushort
     E_CHECK_DDOS_GUARD_ACK,
     E_CH_CONNECTION_LOST_FOR_DDOS_GUARD_NOT,
     E_GS_CONNECTION_LOST_FOR_DDOS_GUARD_NOT,
+    E_SYSTEM_EVENT_ID_END,
 }
 
 /// <summary>
@@ -49,7 +49,6 @@ public sealed class KPerformerInfo
 
     public bool AddUid(long uid)
     {
-        // This deliberately checks the size before insert, matching native AddUID().
         if (_uids.Count >= MaxUidNum)
             return false;
 
@@ -66,10 +65,6 @@ public sealed class KPerformerInfo
         return clone;
     }
 
-    /// <summary>
-    /// Serializes the complete native user-class representation, including
-    /// eTAG_USERCLASS. The member order is exactly Event.cpp's PutInto().
-    /// </summary>
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) => value.WriteTo(ser));
 
@@ -178,11 +173,6 @@ public sealed class KEvent
 
     public void SetFromType(EventFromType type) => FromType = type;
 
-    /// <summary>
-    /// Serializes the complete native KEvent user-class representation.
-    /// m_usFromType is deliberately excluded because Event.cpp's serializer
-    /// does not include it.
-    /// </summary>
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) => value.WriteTo(ser));
 
@@ -219,7 +209,7 @@ public sealed class KEvent
         ArgumentNullException.ThrowIfNull(serializer);
 
         // Native ks.Put(m_kDestPerformer) dispatches through the USERCLASS
-        // overload, so the nested eTAG_USERCLASS must be present here too.
+        // overload, so the nested eTAG_USERCLASS is emitted when tagging is enabled.
         if (!Destination.Serialize(serializer))
             return false;
 
