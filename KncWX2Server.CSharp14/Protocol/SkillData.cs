@@ -2,7 +2,7 @@ namespace KncWX2Server.CSharp14.Protocol;
 
 public sealed class KUnitSkillData
 {
-    private const int EquippedSkillCount = 4;
+    private const int EquippedSkillSlotCount = 4;
 
     public KSkillData[] EquippedSkill { get; } = [new(), new(), new(), new()];
     public KSkillData[] EquippedSkillSlotB { get; } = [new(), new(), new(), new()];
@@ -18,11 +18,8 @@ public sealed class KUnitSkillData
 
         return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
-            foreach (var skill in value.EquippedSkill)
-                skill.Serialize(ser);
-
-            foreach (var skill in value.EquippedSkillSlotB)
-                skill.Serialize(ser);
+            SerializeSkills(ser, value.EquippedSkill);
+            SerializeSkills(ser, value.EquippedSkillSlotB);
 
             ser.PutWString(value.SkillSlotBEndDate);
             ser.Put(value.SkillSlotBExpirationState);
@@ -98,11 +95,19 @@ public sealed class KUnitSkillData
         });
     }
 
+    private static void SerializeSkills(
+        NativePrimitiveSerializer serializer,
+        IReadOnlyList<KSkillData> skills)
+    {
+        foreach (var skill in skills)
+            skill.Serialize(serializer);
+    }
+
     private static bool TryDeserializeSkills(
         NativePrimitiveSerializer serializer,
         out KSkillData[] skills)
     {
-        skills = new KSkillData[EquippedSkillCount];
+        skills = new KSkillData[EquippedSkillSlotCount];
 
         for (var i = 0; i < skills.Length; i++)
         {
