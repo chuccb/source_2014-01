@@ -1,9 +1,10 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
-/// Serialization helper for the native KSerBuffer builtin class.
-/// Native format: optional BUFFER tag, DWORD stored-buffer length, and, when non-empty,
-/// BOOL compression flag followed by the stored bytes. The bytes are not implicitly uncompressed.
+/// Serialization helper for native KSerBuffer.
+/// Wire format: optional BUFFER tag, DWORD stored-buffer length, then for a
+/// non-empty buffer a BOOL compression flag and the stored bytes. On Get the
+/// native serializer restores compressed buffers to their uncompressed form.
 /// </summary>
 public sealed class NativeBufferSerializer(NativePrimitiveSerializer serializer)
 {
@@ -14,7 +15,7 @@ public sealed class NativeBufferSerializer(NativePrimitiveSerializer serializer)
         ArgumentNullException.ThrowIfNull(value);
 
         _serializer.WriteCollectionTag(NativePrimitiveSerializer.TagBuffer);
-        _serializer.Put((uint)value.Length);
+        _serializer.Put(checked((uint)value.Length));
 
         if (value.Length == 0)
             return;
@@ -44,6 +45,6 @@ public sealed class NativeBufferSerializer(NativePrimitiveSerializer serializer)
             return false;
 
         value.SetData(bytes, compressed);
-        return true;
+        return !compressed || value.UnCompress();
     }
 }
