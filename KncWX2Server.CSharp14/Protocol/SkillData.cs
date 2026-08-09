@@ -51,20 +51,22 @@ public sealed class KUnitSkillData
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
+            var equippedSkill = new KSkillData[EquippedSkillCount];
             for (var i = 0; i < EquippedSkillCount; i++)
             {
                 if (!KSkillData.TryDeserialize(ser, out var item))
                     return (false, existing);
 
-                existing.EquippedSkill[i] = item;
+                equippedSkill[i] = item;
             }
 
+            var equippedSkillSlotB = new KSkillData[EquippedSkillCount];
             for (var i = 0; i < EquippedSkillCount; i++)
             {
                 if (!KSkillData.TryDeserialize(ser, out var item))
                     return (false, existing);
 
-                existing.EquippedSkillSlotB[i] = item;
+                equippedSkillSlotB[i] = item;
             }
 
             if (!ser.TryGetWString(out var endDate) ||
@@ -92,6 +94,8 @@ public sealed class KUnitSkillData
                 return (false, existing);
             }
 
+            equippedSkill.CopyTo(existing.EquippedSkill, 0);
+            equippedSkillSlotB.CopyTo(existing.EquippedSkillSlotB, 0);
             existing.SkillSlotBEndDate = endDate;
             existing.SkillSlotBExpirationState = expirationState;
 
@@ -117,10 +121,13 @@ public sealed class KUnitSkillData
         int value) => serializer.Put(value);
 
     private static (bool Ok, KSkillData Value) GetSkill(
-        NativePrimitiveSerializer serializer) =>
-        KSkillData.TryDeserialize(serializer, out var value)
-            ? (true, value)
-            : (false, new KSkillData());
+        NativePrimitiveSerializer serializer)
+    {
+        if (KSkillData.TryDeserialize(serializer, out var value))
+            return (true, value);
+
+        return (false, null!);
+    }
 
     private static (bool Ok, int Value) GetInt32(
         NativePrimitiveSerializer serializer) =>
