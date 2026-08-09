@@ -22,19 +22,11 @@ public sealed class KItemInfo
     public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-        {
-            var options = ProtocolOptions.Default;
-            return value.SerializeFields(ser, options);
-        });
+        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) => value.SerializeFields(ser, options));
     }
 
-    public bool SerializeWithOptions(NativePrimitiveSerializer serializer, ProtocolOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        var userClass = new NativeUserClassSerializer(serializer);
-        return userClass.Put(this, (ser, value) => value.SerializeFields(ser, options));
-    }
+    public bool SerializeWithOptions(NativePrimitiveSerializer serializer, ProtocolOptions options) =>
+        Serialize(serializer, options);
 
     private bool SerializeFields(NativePrimitiveSerializer serializer, ProtocolOptions options)
     {
@@ -204,7 +196,7 @@ public sealed class KInventoryItemInfo
             ser.Put(value.ItemUid);
             ser.Put(value.SlotCategory);
             if (options.ExpandSlotIdDataSize) ser.Put(value.ExpandedSlotId); else ser.Put(value.SlotId);
-            return value.ItemInfo.SerializeWithOptions(ser, options);
+            return value.ItemInfo.Serialize(ser, options);
         });
     }
 
