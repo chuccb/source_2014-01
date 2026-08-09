@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS GTutor (
+    TeacherUID INTEGER NOT NULL,
+    StudentUID INTEGER NOT NULL,
+    RegDate TEXT NULL,
+    LastDate TEXT NULL,
+    DelDate TEXT NULL,
+    Deleted INTEGER GENERATED ALWAYS AS (
+        CASE WHEN RegDate = DelDate THEN 0 ELSE 1 END
+    ) STORED
+);
+
+CREATE INDEX IF NOT EXISTS ix_GTutor_TeacherUID ON GTutor(TeacherUID);
+CREATE INDEX IF NOT EXISTS ix_GTutor_StudentUID ON GTutor(StudentUID);
+CREATE INDEX IF NOT EXISTS ix_GTutor_Deleted ON GTutor(Deleted);
