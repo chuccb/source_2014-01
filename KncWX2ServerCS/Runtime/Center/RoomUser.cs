@@ -10,8 +10,8 @@ public sealed class RoomUser
     public const int SecretStageNone = 0;
     public const int SecretStageAgree = 1;
 
-    private readonly Dictionary<long, Stopwatch> _tradeRequests = new();
-    private readonly Dictionary<int, int> _receivedItems = new();
+    private readonly Dictionary<long, Stopwatch> _tradeRequests = [];
+    private readonly Dictionary<int, int> _receivedItems = [];
 
     public long GSUid { get; set; }
     public long UserUid { get; set; }
@@ -138,6 +138,7 @@ public sealed class RoomUser
 
     public void SetRingOfPvpRebirth(bool value) => IsRingOfPvpRebirth = value;
     public void SetRewardEXP(int value) => RewardEXP = value;
+
     public void SetRewardPartyEXP(int value) => RewardPartyEXP = value;
 
     public void SetUsedResurrectionStoneCount(int value) =>
@@ -260,11 +261,11 @@ public sealed class RoomUser
     {
         var hadRequests = _tradeRequests.Count > 0;
 
-        foreach (var request in _tradeRequests
+        foreach (var (cid, timer) in _tradeRequests
                      .Where(pair => pair.Value.Elapsed.TotalSeconds > TradeRequestTimeoutSeconds)
                      .ToArray())
         {
-            _tradeRequests.Remove(request.Key);
+            _tradeRequests.Remove(cid);
         }
 
         if (hadRequests && _tradeRequests.Count == 0)
@@ -283,9 +284,7 @@ public sealed class RoomUser
             return;
         }
 
-        _receivedItems[itemId] = _receivedItems.TryGetValue(itemId, out var count)
-            ? count + quantity
-            : quantity;
+        _receivedItems[itemId] = _receivedItems.GetValueOrDefault(itemId) + quantity;
     }
 
     public int GetItemCount() => _receivedItems.Values.Sum();
@@ -330,7 +329,7 @@ public sealed class RoomUser
         IsDie = false;
         HP = -1f;
         EndPlayFlag = false;
-        StateMachine.Send(RoomUserInput.ToPlay);
+        StateMachine.Send(RoomUserInputInput.ToPlay);
     }
 
     public void EndPlay()
