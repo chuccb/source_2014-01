@@ -38,9 +38,17 @@ public sealed class KSubQuestInfo
     public SortedDictionary<int, KSubQuestData> ReformSubQuestInfo { get; } = new();
     public SortedDictionary<int, int> LegacySubQuestInfo { get; } = new();
 
-    public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions options) =>
+        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
+        {
+            // The callback cannot capture options because the native USERCLASS
+            // wrapper must be emitted before the payload. Use the instance's
+            // configured map representation through the overload below.
+            return value.SerializePayload(ser, options);
+        });
+
+    private bool SerializePayload(NativePrimitiveSerializer serializer, ProtocolOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var stl = new NativeStlSerializer(serializer);
 
         if (options.ReformQuest)
@@ -68,6 +76,17 @@ public sealed class KSubQuestInfo
     {
         ArgumentNullException.ThrowIfNull(options);
         value = new();
+
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
+        {
+            return x.DeserializePayload(ser, options)
+                ? (true, x)
+                : (false, x);
+        });
+    }
+
+    private bool DeserializePayload(NativePrimitiveSerializer serializer, ProtocolOptions options)
+    {
         var stl = new NativeStlSerializer(serializer);
 
         if (options.ReformQuest)
@@ -77,24 +96,22 @@ public sealed class KSubQuestInfo
                     static ser => ser.TryGet(out int key) ? (true, key) : (false, default),
                     static ser => KSubQuestData.TryDeserialize(ser, out var item)
                         ? (true, item)
-                        : (false, default!))
-                )
+                        : (false, default!)))
                 return false;
 
             foreach (var pair in map)
-                value.ReformSubQuestInfo.TryAdd(pair.Key, pair.Value);
+                ReformSubQuestInfo.TryAdd(pair.Key, pair.Value);
         }
         else
         {
             if (!stl.TryGetMap(
                     out SortedDictionary<int, int> map,
                     static ser => ser.TryGet(out int key) ? (true, key) : (false, default),
-                    static ser => ser.TryGet(out int item) ? (true, item) : (false, default))
-                )
+                    static ser => ser.TryGet(out int item) ? (true, item) : (false, default)))
                 return false;
 
             foreach (var pair in map)
-                value.LegacySubQuestInfo.TryAdd(pair.Key, pair.Value);
+                LegacySubQuestInfo.TryAdd(pair.Key, pair.Value);
         }
 
         return true;
