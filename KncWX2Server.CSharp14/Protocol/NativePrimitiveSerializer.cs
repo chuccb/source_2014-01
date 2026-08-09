@@ -14,6 +14,9 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
     internal const byte TagMultiSet = 21;
     internal const byte TagMap = 22;
     internal const byte TagMultiMap = 23;
+    internal const byte TagBuffer = 24;
+    internal const byte TagKeyedSerializer = 25;
+    internal const byte TagUserClass = 26;
 
     private const byte TagChar = 0, TagWChar = 1, TagUChar = 2, TagShort = 3, TagUShort = 4;
     private const byte TagInt = 5, TagDword = 6, TagInt64 = 7, TagUInt64 = 8, TagFloat = 9;
@@ -123,6 +126,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
 
     internal void WriteCollectionTag(byte tag) => WriteTag(tag);
     internal bool ReadCollectionTag(byte tag) => ReadTag(tag);
+    internal bool IsTaggingEnabled => _tagging;
 
     private void WriteLengthPrefixedBytes(byte tag, ReadOnlySpan<byte> bytes)
     {
