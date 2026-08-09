@@ -19,6 +19,7 @@ public sealed record ProtocolOptions
     public bool SecondSecurity { get; init; }
     public bool DllListCheckBeforeLoading { get; init; }
     public bool FixedDateEvent { get; init; }
+    public bool HackingUserCheckCount { get; init; }
 
     public bool MachineIdDuplicateCheck { get; init; }
     public bool SerialNumberAvailabilityCheckInGameServer { get; init; }
