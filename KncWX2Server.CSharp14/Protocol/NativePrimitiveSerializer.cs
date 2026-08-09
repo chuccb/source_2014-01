@@ -41,6 +41,13 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
     public void Put(double value) { WriteTag(TagDouble); WriteInt64Raw(BitConverter.DoubleToInt64Bits(value)); }
     public void Put(bool value) => WriteByte(TagBool, (byte)(value ? 1 : 0));
 
+    /// <summary>
+    /// Compatibility overload matching the existing C# protocol layer. Native
+    /// std::string is a byte string; the old C# layer defines its application
+    /// encoding as UTF-8, while the byte/Encoding overloads remain available for
+    /// packets whose native source uses another code page.
+    /// </summary>
+    public void Put(string value) => Put(value, Encoding.UTF8);
     public void Put(ReadOnlySpan<byte> value) => WriteLengthPrefixedBytes(TagString, value);
     public void Put(string value, Encoding encoding)
     {
@@ -57,6 +64,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         ArgumentNullException.ThrowIfNull(value);
         WriteLengthPrefixedBytes(TagWString, Encoding.Unicode.GetBytes(value));
     }
+    public void PutWide(string value) => PutWString(value);
     public void PutWCString(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -96,6 +104,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         if (!TryReadByte(TagBool, out var raw)) { value = default; return false; }
         value = raw == 1; return true;
     }
+    public bool TryGetString(out string value) => TryGetString(out value, Encoding.UTF8);
     public bool TryGetString(out byte[] value) => TryReadLengthPrefixedBytes(TagString, out value);
     public bool TryGetString(out string value, Encoding encoding)
     {
@@ -108,6 +117,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         if (!TryReadLengthPrefixedBytes(TagWString, out var bytes) || (bytes.Length & 1) != 0) { value = string.Empty; return false; }
         value = Encoding.Unicode.GetString(bytes); return true;
     }
+    public bool TryGetWide(out string value) => TryGetWString(out value);
     public bool TryGetRaw(Span<byte> destination)
     {
         if (destination.IsEmpty) return false;
