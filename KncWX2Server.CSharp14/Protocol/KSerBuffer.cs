@@ -1,9 +1,9 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
 /// <summary>
-/// Managed byte buffer matching the read/write semantics needed by the native
-/// KSerializer. It deliberately does not add framing, compression, or packet
-/// headers; those belong to the protocol layer above it.
+/// Managed byte buffer matching the native KSerBuffer read/write cursor semantics.
+/// Compression remains a separate concern until its native implementation is ported;
+/// the serializer itself only relies on the byte-storage contract.
 /// </summary>
 public sealed class KSerBuffer
 {
@@ -15,6 +15,13 @@ public sealed class KSerBuffer
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialCapacity);
         _buffer = GC.AllocateUninitializedArray<byte>(initialCapacity);
+    }
+
+    public KSerBuffer(ReadOnlySpan<byte> data)
+    {
+        _buffer = GC.AllocateUninitializedArray<byte>(Math.Max(256, data.Length));
+        data.CopyTo(_buffer);
+        _writePosition = data.Length;
     }
 
     public int Length => _writePosition;
@@ -39,6 +46,8 @@ public sealed class KSerBuffer
 
     public bool Read(Span<byte> destination)
     {
+        if (destination.IsEmpty)
+            return false;
         if (destination.Length > ReadLength)
             return false;
 
@@ -50,8 +59,21 @@ public sealed class KSerBuffer
     public void SetData(ReadOnlySpan<byte> source)
     {
         Clear();
+        EnsureCapacity(source.Length);
         Write(source);
-        ResetReader();
+    }
+
+    public KSerBuffer Clone() => new(WrittenMemory.Span)
+    {
+        _readPosition = _readPosition,
+    };
+
+    public void Swap(KSerBuffer other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        (_buffer, other._buffer) = (other._buffer, _buffer);
+        (_writePosition, other._writePosition) = (other._writePosition, _writePosition);
+        (_readPosition, other._readPosition) = (other._readPosition, _readPosition);
     }
 
     private void EnsureCapacity(int additionalBytes)
