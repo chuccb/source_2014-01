@@ -9,7 +9,9 @@ public sealed class KNetAddress
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
         {
-            return ser.PutWString(value.Ip) && ser.Put(value.Port);
+            ser.PutWString(value.Ip);
+            ser.Put(value.Port);
+            return true;
         });
 
     public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KNetAddress value)
