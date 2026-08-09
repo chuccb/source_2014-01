@@ -8,5 +8,6 @@
     <ProjectReference Include="..\Common\KncWX2Server.Common.csproj" />
     <ProjectReference Include="..\Protocol\KncWX2Server.Protocol.csproj" />
     <ProjectReference Include="..\Database\KncWX2Server.Database.csproj" />
+    <ProjectReference Include="..\Runtime\KncWX2Server.Runtime.csproj" />
   </ItemGroup>
 </Project>
