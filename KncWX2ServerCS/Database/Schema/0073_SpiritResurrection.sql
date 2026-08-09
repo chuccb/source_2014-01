@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS GSpirit (
+    unitUID INTEGER NOT NULL PRIMARY KEY,
+    Spirit INTEGER NOT NULL,
+    RegDate TEXT NOT NULL,
+    Flag INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS GResurrectionStoneCnt (
+    StartCnt INTEGER NULL,
+    SupplyCnt INTEGER NULL,
+    StartSpirit INTEGER NULL
+);
