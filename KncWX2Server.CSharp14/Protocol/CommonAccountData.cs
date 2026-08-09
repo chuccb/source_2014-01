@@ -6,7 +6,11 @@ public sealed class KAccountOption
     public bool PlayGuide { get; set; }
 
     public bool Serialize(NativePrimitiveSerializer serializer) =>
-        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) => ser.Put(value.PlayGuide));
+        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
+        {
+            ser.Put(value.PlayGuide);
+            return true;
+        });
 
     public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KAccountOption value)
     {
@@ -28,7 +32,11 @@ public sealed class KAccountBlockInfo
 
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-            ser.PutWString(value.EndTime) && ser.PutWString(value.BlockReason));
+        {
+            ser.PutWString(value.EndTime);
+            ser.PutWString(value.BlockReason);
+            return true;
+        });
 
     public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KAccountBlockInfo value)
     {
