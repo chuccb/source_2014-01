@@ -107,9 +107,9 @@ public sealed class KUnitSkillData
         NativePrimitiveSerializer serializer,
         out KSkillData[] skills)
     {
-        skills = new KSkillData[EquippedSkillSlotCount];
+        var parsedSkills = new KSkillData[EquippedSkillSlotCount];
 
-        for (var i = 0; i < skills.Length; i++)
+        for (var i = 0; i < parsedSkills.Length; i++)
         {
             if (!KSkillData.TryDeserialize(serializer, out var skill))
             {
@@ -117,9 +117,10 @@ public sealed class KUnitSkillData
                 return false;
             }
 
-            skills[i] = skill;
+            parsedSkills[i] = skill;
         }
 
+        skills = parsedSkills;
         return true;
     }
 
