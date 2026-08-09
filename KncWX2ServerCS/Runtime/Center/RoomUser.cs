@@ -11,7 +11,7 @@ public sealed class RoomUser
     public int Team { get; private set; }
     public int SlotId { get; private set; }=-1;
     public bool IsHost { get; private set; }
-    public bool IsReady => (IsHost||_ready)&&!IsInTrade;
+    public bool IsReady { get; private set; }
     public bool IsPitIn { get; private set; }
     public bool IsInTrade { get; private set; }
     public int LoadingProgress { get; private set; }=-1;
@@ -25,13 +25,13 @@ public sealed class RoomUser
     public int SubStageId { get; private set; }=-1;
     public int RebirthPos { get; private set; }
     public RoomUserStateMachine StateMachine { get; }=new();
-    private bool _ready;
+    public bool IsPlaying=>StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public void SetTeam(int team)=>Team=team;
     public void SetSlotId(int slotId)=>SlotId=slotId;
-    public bool SetHost(bool host){SetReady(host);IsHost=host;return true;}
-    public bool SetReady(bool ready){if(ready&&IsInTrade)return false;_ready=ready;return true;}
+    public bool SetHost(bool host){IsHost=host;return true;}
+    public bool SetReady(bool ready){IsReady=ready;return true;}
     public void SetPitIn(bool value)=>IsPitIn=value;
-    public void SetTrade(bool value){if(value)SetReady(false);IsInTrade=value;}
+    public void SetTrade(bool value){IsInTrade=value;if(value)IsReady=false;}
     public void SetLoadingProgress(int value)=>LoadingProgress=value;
     public void SetStageLoaded(bool value)=>IsStageLoaded=value;
     public void IncreaseKill()=>NumKill++;
@@ -42,5 +42,9 @@ public sealed class RoomUser
     public void SetStage(int value)=>StageId=value;
     public void SetSubStage(int value)=>SubStageId=value;
     public void SetRebirthPos(int value)=>RebirthPos=value;
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartPlay(){LoadingProgress=-1;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;StateMachine.Send(RoomUserInput.ToPlay);}
+    public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;RebirthPos=0;StateMachine.Send(RoomUserInput.ToResult);}
+    public void EndGame(){SetReady(false);LoadingProgress=-1;StateMachine.Send(RoomUserInput.ToInit);}
     public int GetPercentHP(int baseHp)=>baseHp<=0?0:(int)(HP*100f/baseHp);
 }
