@@ -16,7 +16,7 @@ public sealed class KUnitSkillData
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
+        return new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
         {
             foreach (var skill in value.EquippedSkill)
                 skill.Serialize(ser);
@@ -29,13 +29,6 @@ public sealed class KUnitSkillData
 
             var stl = new NativeStlSerializer(ser);
             stl.PutVector(value.PassiveSkill, SerializeSkill);
-
-            if (options.GuildSkillTest)
-                stl.PutVector(value.GuildPassiveSkill, SerializeSkill);
-
-            if (options.SkillNote)
-                stl.PutVector(value.SkillNote, PutInt32);
-
             return true;
         });
     }
@@ -46,8 +39,6 @@ public sealed class KUnitSkillData
         out KUnitSkillData value)
     {
         ArgumentNullException.ThrowIfNull(options);
-
-        value = new();
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
@@ -116,22 +107,15 @@ public sealed class KUnitSkillData
         NativePrimitiveSerializer serializer,
         KSkillData value) => value.Serialize(serializer);
 
-    private static void PutInt32(
-        NativePrimitiveSerializer serializer,
-        int value) => serializer.Put(value);
-
-    private static (bool Ok, KSkillData Value) GetSkill(
-        NativePrimitiveSerializer serializer)
-    {
-        if (KSkillData.TryDeserialize(serializer, out var value))
-            return (true, value);
-
-        return (false, null!);
-    }
-
     private static (bool Ok, int Value) GetInt32(
         NativePrimitiveSerializer serializer) =>
         serializer.TryGet(out int value)
             ? (true, value)
             : (false, default);
+
+    private static (bool Ok, KSkillData Value) GetSkill(
+        NativePrimitiveSerializer serializer) =>
+        KSkillData.TryDeserialize(serializer, out var value)
+            ? (true, value)
+            : (false, default!);
 }
