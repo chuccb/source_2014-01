@@ -22,7 +22,9 @@ public sealed class UnitCreationRepository
 
         await _database.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-        var now = DateTime.Now;
+        // SQL Server smalldatetime has minute precision. Normalize once so all
+        // rows created by this procedure have the same timestamp semantics.
+        var now = ToSmallDateTime(DateTime.Now);
         var startSpirit = await GetStartSpiritAsync(cancellationToken).ConfigureAwait(false);
         var user = await GetUserAsync(userUid, cancellationToken).ConfigureAwait(false);
 
@@ -54,7 +56,7 @@ public sealed class UnitCreationRepository
             await ExecuteAsync(transaction,
                 "INSERT INTO GUnitNickName(UnitUID, NickName, RegDate) VALUES ($unitUid, $nickname, $now);",
                 cancellationToken,
-                ("$unitUid", unitUid), ("$nickname", nickname), ("$now", now.ToString("yyyy-MM-dd HH:mm:ss"))).ConfigureAwait(false);
+                ("$unitUid", unitUid), ("$nickname", nickname), ("$now", FormatSmallDateTime(now))).ConfigureAwait(false);
 
             for (var question = 1; question <= 4; question++)
             {
@@ -67,7 +69,7 @@ public sealed class UnitCreationRepository
             await ExecuteAsync(transaction,
                 "INSERT INTO GQuests(UnitUID, QuestID, SubQuest0, SubQuest1, SubQuest2, SubQuest3, SubQuest4, RegDate) VALUES ($unitUid, 13, 1, 0, 0, 0, 0, $now);",
                 cancellationToken,
-                ("$unitUid", unitUid), ("$now", now.ToString("yyyy-MM-dd HH:mm:ss"))).ConfigureAwait(false);
+                ("$unitUid", unitUid), ("$now", FormatSmallDateTime(now))).ConfigureAwait(false);
 
             var skillId = unitClass switch
             {
@@ -82,17 +84,19 @@ public sealed class UnitCreationRepository
                 await ExecuteAsync(transaction,
                     "INSERT INTO GSkill(UnitUID, SkillID, RegDate) VALUES ($unitUid, $skillId, $now);",
                     cancellationToken,
-                    ("$unitUid", unitUid), ("$skillId", skillId.Value), ("$now", now.ToString("yyyy-MM-dd HH:mm:ss"))).ConfigureAwait(false);
+                    ("$unitUid", unitUid), ("$skillId", skillId.Value), ("$now", FormatSmallDateTime(now))).ConfigureAwait(false);
                 await ExecuteAsync(transaction,
                     "INSERT INTO GSkillSlot(UnitUID, Slot01, Slot02, Slot03) VALUES ($unitUid, $skillId, 0, 0);",
                     cancellationToken,
                     ("$unitUid", unitUid), ("$skillId", skillId.Value)).ConfigureAwait(false);
             }
 
+            // Native gup_create_unit supplies only UnitUID/Spirit/RegDate;
+            // SQLite has the equivalent Flag=0 default documented in the schema.
             await ExecuteAsync(transaction,
-                "INSERT INTO GSpirit(unitUID, Spirit, RegDate, Flag) VALUES ($unitUid, $spirit, $now, 0);",
+                "INSERT INTO GSpirit(unitUID, Spirit, RegDate) VALUES ($unitUid, $spirit, $now);",
                 cancellationToken,
-                ("$unitUid", unitUid), ("$spirit", startSpirit), ("$now", now.ToString("yyyy-MM-dd HH:mm:ss"))).ConfigureAwait(false);
+                ("$unitUid", unitUid), ("$spirit", startSpirit), ("$now", FormatSmallDateTime(now))).ConfigureAwait(false);
 
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return new(0, unitUid, new DateTime(2000, 1, 1));
@@ -125,7 +129,7 @@ public sealed class UnitCreationRepository
     private async Task<DateTime?> GetDeletedNicknameDateAsync(string nickname, CancellationToken ct)
     {
         await using var command = _database.Connection.CreateCommand();
-        command.CommandText = "SELECT RegDate FROM GDeletedNickNameHistory WHERE NickName = $nickname ORDER BY RegDate DESC LIMIT 1;";
+        command.CommandText = "SELECT Regdate FROM GDeletedNickNameHistory WHERE NickName = $nickname ORDER BY Regdate DESC LIMIT 1;";
         command.Parameters.AddWithValue("$nickname", nickname);
         var value = await command.ExecuteScalarAsync(ct).ConfigureAwait(false);
         return value is null || value is DBNull ? null : DateTime.Parse(Convert.ToString(value)!);
@@ -133,18 +137,19 @@ public sealed class UnitCreationRepository
 
     private async Task<long> InsertUnitAsync(SqliteTransaction transaction, long userUid, byte unitClass, DateTime now, CancellationToken ct)
     {
-        await using var command = _database.Connection.CreateCommand();
+        await using var command = transaction.Connection!.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
             INSERT INTO GUnit(UserUID, UnitClass, Exp, Level, GamePoint, VSPoint, VSPointMax, BaseHP,
                 AtkPhysic, AtkMagic, DefPhysic, DefMagic, SPoint, Win, Lose, Seceder,
-                RegDate, DelDate, LastPosition)
-            VALUES ($userUid, $unitClass, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, $now, $now, 20000);
+                RegDate, DelDate, LastDate, LastPosition, PlayDayCnt, LoginCount)
+            VALUES ($userUid, $unitClass, 0, 1, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 0, 0, $now, $now, $now, 20000, 0, 0);
             SELECT last_insert_rowid();
             """;
         command.Parameters.AddWithValue("$userUid", userUid);
         command.Parameters.AddWithValue("$unitClass", unitClass);
-        command.Parameters.AddWithValue("$now", now.ToString("yyyy-MM-dd HH:mm:ss"));
+        command.Parameters.AddWithValue("$now", FormatSmallDateTime(now));
         return Convert.ToInt64(await command.ExecuteScalarAsync(ct).ConfigureAwait(false));
     }
 
@@ -164,4 +169,12 @@ public sealed class UnitCreationRepository
         foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
+
+    private static DateTime ToSmallDateTime(DateTime value)
+    {
+        var baseMinute = new DateTime(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, value.Kind);
+        return value.Second >= 30 ? baseMinute.AddMinutes(1) : baseMinute;
+    }
+
+    private static string FormatSmallDateTime(DateTime value) => value.ToString("yyyy-MM-dd HH:mm");
 }
