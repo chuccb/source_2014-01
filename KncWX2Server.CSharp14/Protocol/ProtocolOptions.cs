@@ -1,9 +1,6 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
-/// <summary>
-/// Build-time protocol feature switches corresponding to native SERV_* macros.
-/// Only options that change serialized wire layout belong here.
-/// </summary>
+/// <summary>Build-time protocol feature switches corresponding to native SERV_* wire-layout macros.</summary>
 public sealed record ProtocolOptions
 {
     public static ProtocolOptions Default { get; } = new();
@@ -42,8 +39,15 @@ public sealed record ProtocolOptions
     public bool GuildSkillTest { get; init; }
     public bool SkillNote { get; init; }
     public bool DeleteItem { get; init; }
+
     public bool BattleFieldSystem { get; init; }
+    public bool RidingPetSystm { get; init; }
     public bool ReformTheGateOfDarkness { get; init; }
+    public bool CoexistenceFestivalRoomBuff { get; init; }
+    public bool DungeonItem { get; init; }
+    public bool PvpRematch { get; init; }
+    public bool NewDefenceDungeon { get; init; }
+
     public bool PcBangType { get; init; }
     public bool TitleDataSize { get; init; }
     public bool GuildTest { get; init; }
@@ -53,5 +57,4 @@ public sealed record ProtocolOptions
     public bool ChinaSpiritEvent { get; init; }
     public bool RecruitEventQuestForNewUser { get; init; }
     public bool NewYearEvent2014 { get; init; }
-    public bool RidingPetSystm { get; init; }
 }
