@@ -27,7 +27,7 @@ public sealed class KAccountInfo
             ser.PutWString(value.Name);
             ser.Put(value.AuthLevel);
             ser.Put(value.InternalUser);
-            if (!value.AccountOption.Serialize(ser) || !value.AccountBlockInfo.Serialize(ser)) return false;
+            if (!value.AccountOption.Serialize(ser) || !value.AccountBlockInfo.Serialize(ser, options)) return false;
             ser.Put(value.IsRecommend);
             ser.Put(value.IsGuestUser);
             ser.PutWString(value.Otp);
@@ -48,7 +48,7 @@ public sealed class KAccountInfo
             if (!ser.TryGet(out long uid) || !ser.TryGetWString(out var id) || !ser.TryGetWString(out var name) ||
                 !ser.TryGet(out int authLevel) || !ser.TryGet(out bool internalUser) ||
                 !KAccountOption.TryDeserialize(ser, out var accountOption) ||
-                !KAccountBlockInfo.TryDeserialize(ser, out var blockInfo) ||
+                !KAccountBlockInfo.TryDeserialize(ser, out var blockInfo, options) ||
                 !ser.TryGet(out bool recommend) || !ser.TryGet(out bool guest) || !ser.TryGetWString(out var otp))
                 return (false, existing);
 
@@ -62,10 +62,26 @@ public sealed class KAccountInfo
             existing.IsRecommend = recommend;
             existing.IsGuestUser = guest;
             existing.Otp = otp;
-            if (options.CashItemList && !ser.TryGetWString(out existing.RegDate)) return (false, existing);
-            if (options.SecondSecurity && !ser.TryGetWString(out existing.LastLogin)) return (false, existing);
-            if (options.DllListCheckBeforeLoading && !ser.TryGet(out existing.ChannelRandomKey)) return (false, existing);
-            if (options.FixedDateEvent && !ser.TryGetWString(out existing.LogoutDate)) return (false, existing);
+            if (options.CashItemList)
+            {
+                if (!ser.TryGetWString(out var regDate)) return (false, existing);
+                existing.RegDate = regDate;
+            }
+            if (options.SecondSecurity)
+            {
+                if (!ser.TryGetWString(out var lastLogin)) return (false, existing);
+                existing.LastLogin = lastLogin;
+            }
+            if (options.DllListCheckBeforeLoading)
+            {
+                if (!ser.TryGet(out int channelRandomKey)) return (false, existing);
+                existing.ChannelRandomKey = channelRandomKey;
+            }
+            if (options.FixedDateEvent)
+            {
+                if (!ser.TryGetWString(out var logoutDate)) return (false, existing);
+                existing.LogoutDate = logoutDate;
+            }
             return (true, existing);
         });
     }
@@ -90,7 +106,8 @@ public sealed class KUserAuthenticateReq
     public bool Serialize(NativePrimitiveSerializer serializer, ProtocolOptions? options = null)
     {
         options ??= ProtocolOptions.Default;
-        if (ServerSn.Length != 12) throw new ArgumentException("Native SERVER_SN is exactly 12 bytes.", nameof(ServerSn));
+        if (options.SerialNumberAvailabilityCheckInGameServer && ServerSn.Length != 12)
+            throw new ArgumentException("Native SERVER_SN is exactly 12 bytes.", nameof(ServerSn));
 
         return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
@@ -131,7 +148,10 @@ public sealed class KUserAuthenticateReq
             {
                 existing.ServerSn = new byte[12];
                 for (var i = 0; i < existing.ServerSn.Length; i++)
-                    if (!ser.TryGet(out existing.ServerSn[i])) return (false, existing);
+                {
+                    if (!ser.TryGet(out byte valueByte)) return (false, existing);
+                    existing.ServerSn[i] = valueByte;
+                }
             }
             if (options.CheckMachineLocalTime && !ser.TryGetWString(out existing.ClientTime)) return (false, existing);
             if (!ser.TryGet(out existing.ChannelingCode)) return (false, existing);
