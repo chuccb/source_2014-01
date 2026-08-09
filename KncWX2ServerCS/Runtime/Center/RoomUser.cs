@@ -106,9 +106,9 @@ public sealed class RoomUser
     public bool SetZombieAlert(bool value){ZombieAlert=value;return true;}
     public bool SetEndPlay(bool value){EndPlayFlag=value;return true;}
     public bool SetCashContinueReady(bool value){CashContinueReady=value;return true;}
-    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
-    public void StartPlay(){LoadingProgress=-1;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=false;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartPlay(){LoadingProgress=-1;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToPlay);}
     public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;EndPlayFlag=true;StateMachine.Send(RoomUserInput.ToResult);}
-    public void EndGame(){SetReady(false);LoadingProgress=-1;IsStageLoaded=false;IsSuccessResult=true;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToInit);}
+    public void EndGame(){SetReady(false);LoadingProgress=-1;StateMachine.Send(RoomUserInput.ToInit);}
     public int GetPercentHP(int baseHp)=>baseHp<=0?0:(int)(HP*100f/baseHp);
 }
