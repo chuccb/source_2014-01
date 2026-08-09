@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS GItemPeriod (
+    ItemUID INTEGER NOT NULL,
+    Period INTEGER NOT NULL,
+    ExpirationDate TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_GItemPeriod_ItemUID ON GItemPeriod(ItemUID);
