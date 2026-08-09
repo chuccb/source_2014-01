@@ -27,27 +27,18 @@ public static class NativePacketSerializer
         ArgumentNullException.ThrowIfNull(getFrom);
         ArgumentNullException.ThrowIfNull(factory);
 
-        packet = factory();
-        return new NativeUserClassSerializer(serializer).TryGet(
-            out packet,
-            static (ser, value, reader) => reader(ser, value),
-            getFrom);
-    }
-
-    // Kept separate from the public overload so packet implementations can use
-    // a strongly typed object without reflection or dynamic dispatch.
-    private static bool TryGet<T>(
-        this NativeUserClassSerializer userClass,
-        out T value,
-        Func<NativePrimitiveSerializer, T, (bool Ok, T Value)> reader,
-        Func<NativePrimitiveSerializer, T, bool> getFrom)
-    {
-        value = default!;
-        if (!userClass.TryGet(out T existing, static (ser, packet, state) =>
-            state(ser, packet) ? (true, packet) : (false, packet), getFrom))
+        var existing = factory();
+        if (!new NativeUserClassSerializer(serializer).TryGet(
+                out T decoded,
+                (ser, value) => getFrom(ser, value)
+                    ? (true, value)
+                    : (false, value)))
+        {
+            packet = existing;
             return false;
+        }
 
-        value = existing;
+        packet = decoded;
         return true;
     }
 }
