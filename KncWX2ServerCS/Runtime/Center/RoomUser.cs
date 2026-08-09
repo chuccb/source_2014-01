@@ -85,6 +85,8 @@ public sealed class RoomUser
     public RoomUserStateMachine StateMachine { get; } = new();
 
     public bool IsPlaying => StateMachine.State is RoomUserState.Load or RoomUserState.Play;
+    public bool IsOnlyPlaying => StateMachine.State is RoomUserState.Play;
+    public bool IsReadyForRoom => (IsHost || IsReady) && !IsInTrade;
 
     public void SetLevel(int level) => Level = level;
     public void SetUnitType(int unitType) => UnitType = unitType;
@@ -93,12 +95,18 @@ public sealed class RoomUser
 
     public bool SetHost(bool host)
     {
+        SetReady(host);
         IsHost = host;
         return true;
     }
 
     public bool SetReady(bool ready)
     {
+        if (ready && IsInTrade)
+        {
+            return false;
+        }
+
         IsReady = ready;
         return true;
     }
@@ -107,17 +115,12 @@ public sealed class RoomUser
 
     public void SetTrade(bool value)
     {
-        IsInTrade = value;
-
-        if (!value)
-        {
-            _tradeRequests.Clear();
-        }
-
         if (value)
         {
-            IsReady = false;
+            SetReady(false);
         }
+
+        IsInTrade = value;
     }
 
     public void SetPvpNpc(bool value) => IsPvpNpc = value;
@@ -139,18 +142,30 @@ public sealed class RoomUser
     public void SetRingOfPvpRebirth(bool value) => IsRingOfPvpRebirth = value;
     public void SetRewardEXP(int value) => RewardEXP = value;
     public void SetRewardPartyEXP(int value) => RewardPartyEXP = value;
-    public void SetUsedResurrectionStoneCount(int value) => UsedResurrectionStoneCount = Math.Max(0, value);
+    public void SetUsedResurrectionStoneCount(int value) => UsedResurrectionStoneCount = value;
+    public void IncreaseUsedResurrectionStoneCount() => UsedResurrectionStoneCount++;
+
     public void SetLoadingProgress(int value) => LoadingProgress = value;
     public void SetStageLoaded(bool value) => IsStageLoaded = value;
     public void IncreaseKill() => NumKill++;
     public void IncreaseMDKill() => NumMDKill++;
     public void IncreaseDie() => NumDie++;
     public void IncreaseKillNpc() => KillNpcCount++;
+
+    public int GetKillNpcCountForLua() => Math.Max(1, KillNpcCount);
+
     public void SetDie(bool value) => IsDie = value;
     public void SetHP(float value) => HP = value;
     public void SetStage(int value) => StageId = value;
     public void SetSubStage(int value) => SubStageId = value;
     public void SetRebirthPos(int value) => RebirthPos = value;
+    public void IncreasePassedStageCount()
+    {
+        PassedStageCount++;
+        PassedSubStageCount = 0;
+    }
+
+    public void IncreasePassedSubStageCount() => PassedSubStageCount++;
     public void SetPassedStageCount(int value) => PassedStageCount = value;
     public void SetPassedSubStageCount(int value) => PassedSubStageCount = value;
     public void SetDungeonUnitInfoReceived(bool value) => DungeonUnitInfoReceived = value;
@@ -313,6 +328,11 @@ public sealed class RoomUser
         ZombieAlert = false;
         EndPlayFlag = false;
         CashContinueReady = false;
+        IsIntrude = false;
+        AgreeEnterSecretStage = SecretStageNone;
+        IsPrepareForDefence = false;
+        IsRecvEnterPopupReply = false;
+        IsEnterDefenceDungeon = false;
         StateMachine.Send(RoomUserInput.ToLoad);
     }
 
