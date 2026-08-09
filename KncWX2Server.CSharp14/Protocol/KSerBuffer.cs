@@ -95,18 +95,15 @@ public sealed class KSerBuffer
     }
 
     /// <summary>
-    /// Compresses the current stored bytes using zlib level 1, matching native compress2(..., 1).
-    /// The resulting stored representation is [DWORD originalLength in native little-endian][zlib bytes].
+    /// Compresses the current stored bytes using zlib level 1, matching native
+    /// compress2(..., 1). The resulting representation is
+    /// [DWORD originalLength in native little-endian][zlib bytes].
+    /// Native also compresses an empty buffer; it does not special-case length 0.
     /// </summary>
     public bool Compress()
     {
         if (_compressed)
             return true;
-        if (_writePosition == 0)
-        {
-            _compressed = true;
-            return true;
-        }
 
         var source = WrittenMemory;
         using var output = new MemoryStream();
@@ -125,8 +122,9 @@ public sealed class KSerBuffer
     }
 
     /// <summary>
-    /// Restores a buffer produced by Compress(). The DWORD stored before the zlib stream is native
-    /// little-endian because native Compress() writes it directly with Write().
+    /// Restores a buffer produced by Compress(). The DWORD stored before the zlib
+    /// stream is native little-endian because native Compress() writes it directly
+    /// with KSerBuffer::Write().
     /// </summary>
     public bool UnCompress()
     {
@@ -145,6 +143,7 @@ public sealed class KSerBuffer
             using var zlib = new ZLibStream(input, CompressionMode.Decompress);
             var restored = GC.AllocateUninitializedArray<byte>((int)originalLength);
             var offset = 0;
+
             while (offset < restored.Length)
             {
                 var read = zlib.Read(restored, offset, restored.Length - offset);
@@ -153,9 +152,9 @@ public sealed class KSerBuffer
                 offset += read;
             }
 
-            if (zlib.ReadByte() != -1)
-                return false;
-
+            // Native uncompress() is given the complete remaining input length and
+            // validates the decompressed byte count, but does not separately reject
+            // trailing bytes. Do not impose a stricter framing rule here.
             Clear();
             if (restored.Length != 0)
                 Write(restored);
