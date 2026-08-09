@@ -8,11 +8,7 @@ public enum SlotState { Empty=1, Close, Wait, Loading, Play }
 public enum DungeonGetItemType { None=0, Random, Person, End }
 
 public sealed record RoomSimpleInfo(long RoomUid,string RoomName,RoomState State,bool IsPublic,int MaxSlot,int JoinSlot);
-
-public sealed record RoomSlotInfo(
-    int Index, SlotState State, TeamNum Team, long UnitUid, uint PingTime,
-    float ElapsedTimeAfterJoinRoom, bool IsHost, bool IsMySlot, bool IsReady,
-    bool IsPitIn, bool IsTrade, bool IsObserver);
+public sealed record RoomSlotInfo(int Index,SlotState State,TeamNum Team,long UnitUid,uint PingTime,float ElapsedTimeAfterJoinRoom,bool IsHost,bool IsMySlot,bool IsReady,bool IsPitIn,bool IsTrade,bool IsObserver);
 
 public sealed class RoomSlot
 {
@@ -31,6 +27,8 @@ public sealed class RoomSlot
     public bool IsObserver { get; private set; }
 
     public RoomSlot(int index)=>Index=index;
+    public bool IsOpened=>State is SlotState.Empty or SlotState.Close ? State==SlotState.Empty : false;
+    public bool IsOccupied=>UnitUid!=0;
     public void SetState(SlotState state)=>State=state;
     public void SetUnit(long uid)=>UnitUid=uid;
     public void SetTeam(TeamNum team)=>Team=team;
@@ -42,14 +40,8 @@ public sealed class RoomSlot
     public void SetTrade(bool value)=>IsTrade=value;
     public void SetObserver(bool value)=>IsObserver=value;
     public void Tick(float elapsed){if(UnitUid!=0)ElapsedTimeAfterJoinRoom+=elapsed;}
-
     public RoomSlotInfo ToInfo()=>new(Index,State,Team,UnitUid,PingTime,ElapsedTimeAfterJoinRoom,IsHost,IsMySlot,IsReady,IsPitIn,IsTrade,IsObserver);
-
-    public void Clear()
-    {
-        State=SlotState.Close; UnitUid=0; PingTime=PingTimeToBeInitialized; ElapsedTimeAfterJoinRoom=0;
-        IsHost=false; IsMySlot=false; IsReady=false; IsPitIn=false; IsTrade=false; IsObserver=false; Team=TeamNum.Red;
-    }
+    public void Clear(){State=SlotState.Close;UnitUid=0;PingTime=PingTimeToBeInitialized;ElapsedTimeAfterJoinRoom=0;IsHost=false;IsMySlot=false;IsReady=false;IsPitIn=false;IsTrade=false;IsObserver=false;Team=TeamNum.Red;}
 }
 
 public class Room
@@ -62,7 +54,6 @@ public class Room
     public bool IsPublic { get; private set; } = true;
     public DungeonGetItemType GetItemType { get; private set; } = DungeonGetItemType.Random;
     public IReadOnlyList<RoomSlot> Slots=>_slots;
-
     public Room(long roomUid,string name,RoomType type,int maxSlots){if(maxSlots<0)throw new ArgumentOutOfRangeException(nameof(maxSlots));RoomUid=roomUid;Name=name;Type=type;_slots=Enumerable.Range(0,maxSlots).Select(i=>new RoomSlot(i)).ToArray();}
     public void SetState(RoomState state)=>State=state;
     public void SetPublic(bool value)=>IsPublic=value;
@@ -73,14 +64,32 @@ public class Room
     public RoomSimpleInfo GetSimpleInfo()=>new(RoomUid,Name,State,IsPublic,MaxSlot,JoinSlotCount);
     public IReadOnlyList<RoomSlotInfo> GetSlotSnapshot()=>_slots.Select(x=>x.ToInfo()).ToArray();
     public RoomSlot? FindSlot(long uid)=>_slots.FirstOrDefault(x=>x.UnitUid==uid);
-    public RoomSlot? FindEmptySlot()=>_slots.FirstOrDefault(x=>x.State==SlotState.Empty||x.State==SlotState.Close);
-    public bool AddUnit(long uid,out int slotIndex){if(uid==0){slotIndex=-1;return false;}var existing=FindSlot(uid);if(existing is not null){slotIndex=existing.Index;return false;}var slot=FindEmptySlot();if(slot is null){slotIndex=-1;return false;}slot.SetUnit(uid);slot.SetState(SlotState.Wait);slotIndex=slot.Index;return true;}
-    public bool RemoveUnit(long uid){var slot=FindSlot(uid);if(slot is null)return false;slot.Clear();return true;}
+    public RoomSlot? FindEmptySlot()=>_slots.FirstOrDefault(x=>x.State==SlotState.Empty);
+    public bool OpenSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(SlotState.Empty);return true;}
+    public bool CloseSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(SlotState.Close);return true;}
+    public bool ToggleSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(s.State==SlotState.Empty?SlotState.Close:SlotState.Empty);return true;}
+    public void AssignTeams(int gameMode)
+    {
+        // Native CenterServer uses 4 slots per side for team/team-death modes and
+        // the slot index for survival. Other modes default to red.
+        foreach(var slot in _slots)
+        {
+            var team=gameMode switch
+            {
+                0 or 1 => slot.Index/4==0?TeamNum.Red:TeamNum.Blue,
+                2 => slot.Index<=2?(TeamNum)slot.Index:TeamNum.Red,
+                _ => TeamNum.Red
+            };
+            slot.SetTeam(team);
+        }
+    }
+    public bool AddUnit(long uid,out int slotIndex){if(uid==0){slotIndex=-1;return false;}if(FindSlot(uid) is not null){slotIndex=-1;return false;}var slot=FindEmptySlot();if(slot is null){slotIndex=-1;return false;}slot.SetUnit(uid);slot.SetState(SlotState.Wait);slotIndex=slot.Index;if(HostUnitUid==0)slot.SetHost(true);return true;}
+    public bool RemoveUnit(long uid){var slot=FindSlot(uid);if(slot is null)return false;var wasHost=slot.IsHost;slot.Clear();if(wasHost){var next=_slots.FirstOrDefault(x=>x.UnitUid!=0);if(next is not null)next.SetHost(true);}return true;}
     public bool SetReady(long uid,bool ready){var slot=FindSlot(uid);if(slot is null)return false;slot.SetReady(ready);return true;}
     public bool SetTeam(long uid,TeamNum team){var slot=FindSlot(uid);if(slot is null)return false;slot.SetTeam(team);return true;}
-    public bool SetHost(long uid){var slot=FindSlot(uid);if(slot is null)return false;foreach(var s in _slots)s.SetHost(s.Index==slot.Index);return true;}
+    public bool SetHost(long uid){var slot=FindSlot(uid);if(slot is null)return false;foreach(var s in _slots)s.SetHost(ReferenceEquals(s,slot));return true;}
     public long HostUnitUid=>_slots.FirstOrDefault(x=>x.IsHost)?.UnitUid??0;
-    public void Tick(float elapsed){foreach(var slot in _slots)slot.Tick(elapsed);}
+    public void Tick(float elapsed){if(elapsed<0)throw new ArgumentOutOfRangeException(nameof(elapsed));foreach(var slot in _slots)slot.Tick(elapsed);}
 }
 
 public sealed class BattleFieldRoom : Room
