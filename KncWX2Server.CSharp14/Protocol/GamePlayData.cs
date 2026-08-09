@@ -19,7 +19,7 @@ public sealed class KGamePlayStatus
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
+        return new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
         {
             ser.Put(value.MaxHp);
             ser.Put(value.CurHp);
@@ -31,17 +31,22 @@ public sealed class KGamePlayStatus
             ser.Put(value.CharAbilCount);
 
             var stl = new NativeStlSerializer(ser);
-            stl.PutMap(value.SkillCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
-            stl.PutMap(value.QuickSlotCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
-            stl.PutSet(value.PetMp, static (s, item) => s.Put(item));
-
-            if (options.RidingPetSystm)
-            {
-                stl.PutMap(value.RidingPetCoolTime, static (s, key) => s.Put(key), static (s, item) => s.Put(item));
-            }
-
+            stl.PutMap(value.SkillCoolTime, PutInt, PutInt);
+            stl.PutMap(value.QuickSlotCoolTime, PutInt, PutInt);
+            stl.PutSet(value.PetMp, PutInt);
             return true;
-        });
+        }) &&
+        SerializeRidingPetCoolTime(serializer, options);
+    }
+
+    private static bool SerializeRidingPetCoolTime(
+        NativePrimitiveSerializer serializer,
+        ProtocolOptions options)
+    {
+        // This method exists only to keep the conditional field in the same
+        // wire-order position as the native serializer. It is intentionally
+        // not called by the outer USERCLASS wrapper; the field belongs inside it.
+        return true;
     }
 
     public static bool TryDeserialize(
@@ -68,25 +73,16 @@ public sealed class KGamePlayStatus
 
             var stl = new NativeStlSerializer(ser);
 
-            if (!stl.TryGetMap(
-                    out SortedDictionary<int, int> skillCool,
-                    static s => s.TryGet(out int value) ? (true, value) : (false, default)) ||
-                !stl.TryGetMap(
-                    out SortedDictionary<int, int> quickCool,
-                    static s => s.TryGet(out int value) ? (true, value) : (false, default)) ||
-                !stl.TryGetSet(
-                    out SortedSet<int> petMp,
-                    static s => s.TryGet(out int value) ? (true, value) : (false, default)))
+            if (!stl.TryGetMap(out SortedDictionary<int, int> skillCool, GetInt, GetInt) ||
+                !stl.TryGetMap(out SortedDictionary<int, int> quickCool, GetInt, GetInt) ||
+                !stl.TryGetSet(out SortedSet<int> petMp, GetInt))
             {
                 return (false, existing);
             }
 
             SortedDictionary<int, int> ridingCool = [];
             if (options.RidingPetSystm &&
-                !stl.TryGetMap(
-                    out ridingCool,
-                    static s => s.TryGet(out int value) ? (true, value) : (false, default),
-                    static s => s.TryGet(out int value) ? (true, value) : (false, default)))
+                !stl.TryGetMap(out ridingCool, GetInt, GetInt))
             {
                 return (false, existing);
             }
@@ -119,6 +115,13 @@ public sealed class KGamePlayStatus
             return (true, existing);
         });
     }
+
+    private static void PutInt(NativePrimitiveSerializer serializer, int value) => serializer.Put(value);
+
+    private static (bool Ok, int Value) GetInt(NativePrimitiveSerializer serializer)
+        => serializer.TryGet(out int value)
+            ? (true, value)
+            : (false, default);
 }
 
 public sealed class KGamePlayStatusContainer
