@@ -156,7 +156,6 @@ public sealed class KGamePlayStatusContainer
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var stl = new NativeStlSerializer(serializer);
         return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
             new NativeStlSerializer(ser).PutVector(
