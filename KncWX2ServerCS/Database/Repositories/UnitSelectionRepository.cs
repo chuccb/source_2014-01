@@ -36,22 +36,20 @@ public sealed class UnitSelectionRepository
             var spirit = await ReadSpiritAsync(transaction, unitUid, cancellationToken).ConfigureAwait(false);
             var policy = await ReadResurrectionPolicyAsync(transaction, cancellationToken).ConfigureAwait(false);
 
-            // Native gup_select_unit performs an UPDATE and requires exactly one row
-            // when the daily Spirit reset is due. A missing GSpirit row therefore maps
-            // to the same failure code rather than silently succeeding.
-            if (spirit is null)
+            // Native SQL leaves Spirit untouched when no GSpirit row exists because
+            // the NULL date makes the reset predicate UNKNOWN. Only an existing row
+            // participates in the reset/update path.
+            if (spirit is not null && IsAfterDailyReset(spirit.Value.RegDate, now))
             {
-                if (IsAfterDailyReset(DateTime.MinValue, now))
-                    return await FailAsync(transaction, -11, cancellationToken).ConfigureAwait(false);
-            }
-            else if (IsAfterDailyReset(spirit.Value.RegDate, now))
-            {
-                await ExecuteAsync(transaction,
+                var affected = await ExecuteAsync(transaction,
                     "UPDATE GSpirit SET Spirit = $spirit, Flag = 0, RegDate = $regDate WHERE UnitUID = $unitUid;",
                     cancellationToken,
                     ("$spirit", policy.StartSpirit),
                     ("$regDate", FormatSmallDateTime(now)),
                     ("$unitUid", unitUid));
+
+                if (affected != 1)
+                    return await FailAsync(transaction, -11, cancellationToken).ConfigureAwait(false);
 
                 spirit = (policy.StartSpirit, false, now);
             }
@@ -61,26 +59,33 @@ public sealed class UnitSelectionRepository
             {
                 if (stone is null)
                 {
-                    await ExecuteAsync(transaction,
+                    var inserted = await ExecuteAsync(transaction,
                         "INSERT INTO GResurrectionStone(UnitUID, Quantity) VALUES ($unitUid, $quantity);",
                         cancellationToken,
                         ("$unitUid", unitUid),
                         ("$quantity", policy.StartCount));
+
+                    if (inserted != 1)
+                        return await FailAsync(transaction, -21, cancellationToken).ConfigureAwait(false);
+
                     stone = policy.StartCount;
                 }
                 else if (stone.Value < policy.SupplyCount)
                 {
                     var refillAmount = policy.SupplyCount - stone.Value;
-                    await ExecuteAsync(transaction,
+                    var affected = await ExecuteAsync(transaction,
                         "UPDATE GResurrectionStone SET Quantity = $quantity WHERE UnitUID = $unitUid;",
                         cancellationToken,
                         ("$quantity", policy.SupplyCount),
                         ("$unitUid", unitUid));
 
+                    if (affected != 1)
+                        return await FailAsync(transaction, -22, cancellationToken).ConfigureAwait(false);
+
                     // Statistics.dbo.StatsStoneCnt is not part of the verified SQLite
                     // schema. Its migration remains intentionally isolated instead of
-                    // inventing a table definition. The exact refill amount is retained
-                    // here for the future Statistics repository.
+                    // inventing a table definition. Retain the exact refill amount for
+                    // the future Statistics repository.
                     _ = refillAmount;
                 }
             }
@@ -88,20 +93,27 @@ public sealed class UnitSelectionRepository
             var playDayCount = unit.Value.PlayDayCount;
             if (unit.Value.LastDate.Date != now.Date)
             {
-                await ExecuteAsync(transaction,
+                var affected = await ExecuteAsync(transaction,
                     "UPDATE GUnit SET PlayDayCnt = PlayDayCnt + 1 WHERE UnitUID = $unitUid;",
                     cancellationToken,
                     ("$unitUid", unitUid));
+
+                if (affected != 1)
+                    return await FailAsync(transaction, -31, cancellationToken).ConfigureAwait(false);
+
                 playDayCount++;
             }
 
-            var loginCount = unit.Value.LoginCount + 1;
-            await ExecuteAsync(transaction,
+            var affectedLogin = await ExecuteAsync(transaction,
                 "UPDATE GUnit SET LoginCount = LoginCount + 1, LastDate = $lastDate WHERE UnitUID = $unitUid;",
                 cancellationToken,
                 ("$lastDate", FormatSmallDateTime(now)),
                 ("$unitUid", unitUid));
 
+            if (affectedLogin != 1)
+                return await FailAsync(transaction, -32, cancellationToken).ConfigureAwait(false);
+
+            var loginCount = unit.Value.LoginCount + 1;
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 
             return new(
@@ -188,14 +200,14 @@ public sealed class UnitSelectionRepository
             ? (short)0
             : Convert.ToInt16(value, CultureInfo.InvariantCulture);
 
-    private static async Task ExecuteAsync(SqliteTransaction tx, string sql, CancellationToken ct, params (string Name, object Value)[] parameters)
+    private static async Task<int> ExecuteAsync(SqliteTransaction tx, string sql, CancellationToken ct, params (string Name, object Value)[] parameters)
     {
         await using var command = tx.Connection!.CreateCommand();
         command.Transaction = tx;
         command.CommandText = sql;
         foreach (var (name, value) in parameters)
             command.Parameters.AddWithValue(name, value);
-        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static bool IsAfterDailyReset(DateTime source, DateTime now)
