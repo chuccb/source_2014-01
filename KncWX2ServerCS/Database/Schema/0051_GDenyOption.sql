@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS GDenyOption (
+    UnitUID INTEGER NOT NULL,
+    QuestionNo INTEGER NOT NULL,
+    CodeNo INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_GDenyOption_UnitUID ON GDenyOption(UnitUID);
