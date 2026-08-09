@@ -133,7 +133,7 @@ public sealed class KGamePlayStatusContainer
         {
             new NativeStlSerializer(ser).PutVector(
                 value.GamePlayStatus,
-                static (s, item) => item.Serialize(s, options));
+                (s, item) => item.Serialize(s, options));
             return true;
         });
     }
