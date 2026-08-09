@@ -33,7 +33,6 @@ public sealed class KPerformerInfo
     public uint PerformerId { get; set; }
     public int UidListSize => _uids.Count;
     public IReadOnlyCollection<long> UidList => _uids;
-
     public bool FindUid(long uid) => _uids.Contains(uid);
 
     public bool AddUid(long uid)
@@ -45,7 +44,6 @@ public sealed class KPerformerInfo
     }
 
     internal void ClearUids() => _uids.Clear();
-
     public long GetFirstUid() => _uids.Count == 0 ? -1 : _uids.Min;
 
     public KPerformerInfo Clone()
@@ -58,8 +56,8 @@ public sealed class KPerformerInfo
 
 /// <summary>
 /// Managed counterpart of KncWX2Server/Common/Event.cpp.
-/// The serialized representation intentionally excludes FromType,
-/// matching the native KEvent serializer.
+/// FromType is runtime metadata and is intentionally not serialized,
+/// exactly like the native implementation.
 /// </summary>
 public sealed class KEvent
 {
@@ -111,15 +109,36 @@ public sealed class KEvent
         Destination.PerformerId = performerId;
         EventId = eventId;
 
-        if (trace.Length != 0)
-        {
-            FirstTrace = trace[0];
-            LastTrace = trace.Length > 1 ? trace[1] : -1;
-        }
-        else
+        if (trace.IsEmpty)
         {
             FirstTrace = -1;
             LastTrace = -1;
+            return;
+        }
+
+        if (trace.Length < 2)
+            throw new ArgumentException("Native KEvent requires two trace slots when the trace pointer is non-null.", nameof(trace));
+
+        FirstTrace = trace[0];
+        LastTrace = trace[1];
+    }
+
+    /// <summary>Equivalent to the native templated SetData overload.</summary>
+    public void SetData<T>(uint performerId, ReadOnlySpan<long> trace, ushort eventId, T data, Func<KSerializer, T, bool> put)
+    {
+        ArgumentNullException.ThrowIfNull(put);
+        SetData(performerId, trace, eventId);
+        Buffer.Clear();
+        var serializer = new KSerializer();
+        serializer.BeginWriting(Buffer);
+        try
+        {
+            if (!put(serializer, data))
+                throw new InvalidOperationException("Native serializer returned false while constructing KEvent data.");
+        }
+        finally
+        {
+            serializer.EndWriting();
         }
     }
 
@@ -151,8 +170,7 @@ public sealed class KEvent
 
     public static string GetIdString(ushort eventId)
     {
-        // Native uses m_EventIDEnd / EVENT_EVENTID_SENTINEL as the boundary
-        // and returns the sentinel string for every out-of-range ID.
+        // Native m_EventIDEnd / EVENT_EVENTID_SENTINEL is the last sentinel entry.
         return eventId >= SystemEventNames.Length - 1
             ? SystemEventNames[^1]
             : SystemEventNames[eventId];
@@ -161,17 +179,12 @@ public sealed class KEvent
     public void SetFromType(EventFromType type) => FromType = type;
 
     /// <summary>
-    /// Mirrors the native IsValidEventID contract when SERV_KEVENT_FROM is enabled.
-    /// The complete EventID_Server.h switch is intentionally generated separately;
-    /// until then this method does not guess server-event ranges.
+    /// Mirrors native IsValidEventID: a client-originated event must not
+    /// have an ID belonging to EventID_Server.h. The server ID set is supplied
+    /// by the generated server-event table rather than guessed from numeric ranges.
     /// </summary>
     public bool IsValidEventId(IReadOnlySet<ushort>? serverEventIds = null)
-    {
-        if (FromType != EventFromType.Client || serverEventIds is null)
-            return true;
-
-        return !serverEventIds.Contains(EventId);
-    }
+        => FromType != EventFromType.Client || serverEventIds is null || !serverEventIds.Contains(EventId);
 
     public KEvent Clone()
     {
@@ -187,12 +200,7 @@ public sealed class KEvent
         foreach (long uid in Destination.UidList)
             clone.Destination.AddUid(uid);
 
-        if (Buffer.Length != 0)
-            clone.Buffer.Write(Buffer.Data.Span);
-
-        if (Buffer.IsCompressed)
-            clone.Buffer.MarkCompressed();
-
+        clone.Buffer.CopyFrom(Buffer);
         return clone;
     }
 }
