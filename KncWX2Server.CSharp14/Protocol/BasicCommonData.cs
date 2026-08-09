@@ -61,8 +61,11 @@ public sealed class KDenyOptions
             x.DenyInviteGuild = guild;
             x.DenyParty = party;
             x.DenyPersonalTrade = trade;
-            if (options.RelationshipSystem && !ser.TryGet(out x.DenyRequestCouple))
-                return (false, x);
+            if (options.RelationshipSystem)
+            {
+                if (!ser.TryGet(out sbyte requestCouple)) return (false, x);
+                x.DenyRequestCouple = requestCouple;
+            }
             return (true, x);
         });
     }
