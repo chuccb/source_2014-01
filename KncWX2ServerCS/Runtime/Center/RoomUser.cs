@@ -2,7 +2,7 @@ namespace KncWX2Server.Runtime.Center;
 
 using System.Diagnostics;
 
-public sealed class RoomUser
+public sealed partial class RoomUser
 {
     public const int DefaultObserverSlotCount = 3;
     public const double LoadingTimeoutSeconds = 60.0;
@@ -166,7 +166,6 @@ public sealed class RoomUser
     public void SetHP(float value) => HP = value;
     public void SetStage(int value) => StageId = value;
     public void SetSubStage(int value) => SubStageId = value;
-
     public void SetRebirthPos(int value) => RebirthPos = value;
 
     public void IncreasePassedStageCount()
