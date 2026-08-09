@@ -42,6 +42,10 @@ public sealed class RoomUser
     public int StageId { get; private set; }=-1;
     public int SubStageId { get; private set; }=-1;
     public int RebirthPos { get; private set; }
+    public int PassedStageCount { get; private set; }
+    public int PassedSubStageCount { get; private set; }
+    public int KillNpcCount { get; private set; }
+    public bool DungeonUnitInfoReceived { get; private set; }
     public bool IsAcceptRematch { get; private set; }
     public bool IsPrepareForDefence { get; private set; }
     public bool IsRecvEnterPopupReply { get; private set; }
@@ -87,11 +91,15 @@ public sealed class RoomUser
     public void IncreaseKill()=>NumKill++;
     public void IncreaseMDKill()=>NumMDKill++;
     public void IncreaseDie()=>NumDie++;
+    public void IncreaseKillNpc()=>KillNpcCount++;
     public void SetDie(bool value)=>IsDie=value;
     public void SetHP(float value)=>HP=value;
     public void SetStage(int value)=>StageId=value;
     public void SetSubStage(int value)=>SubStageId=value;
     public void SetRebirthPos(int value)=>RebirthPos=value;
+    public void SetPassedStageCount(int value)=>PassedStageCount=value;
+    public void SetPassedSubStageCount(int value)=>PassedSubStageCount=value;
+    public void SetDungeonUnitInfoReceived(bool value)=>DungeonUnitInfoReceived=value;
     public void SetRematch(bool value)=>IsAcceptRematch=value;
     public void SetPrepareForDefence(bool value)=>IsPrepareForDefence=value;
     public void SetRecvEnterPopupReply(bool value)=>IsRecvEnterPopupReply=value;
@@ -106,7 +114,7 @@ public sealed class RoomUser
     public bool SetZombieAlert(bool value){ZombieAlert=value;return true;}
     public bool SetEndPlay(bool value){EndPlayFlag=value;return true;}
     public bool SetCashContinueReady(bool value){CashContinueReady=value;return true;}
-    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=false;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
+    public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;KillNpcCount=0;HP=-1f;IsSuccessResult=false;RewardEXP=0;RewardPartyEXP=0;UsedResurrectionStoneCount=0;PassedStageCount=0;PassedSubStageCount=0;DungeonUnitInfoReceived=false;BattleFieldNpcLoad=false;BattleFieldNpcSyncSubjects=false;IsHenirReward=false;ReceivedPingScore=false;ZombieAlert=false;EndPlayFlag=false;CashContinueReady=false;StateMachine.Send(RoomUserInput.ToLoad);}
     public void StartPlay(){LoadingProgress=-1;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;EndPlayFlag=false;StateMachine.Send(RoomUserInput.ToPlay);}
     public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;EndPlayFlag=true;StateMachine.Send(RoomUserInput.ToResult);}
     public void EndGame(){SetReady(false);LoadingProgress=-1;StateMachine.Send(RoomUserInput.ToInit);}
