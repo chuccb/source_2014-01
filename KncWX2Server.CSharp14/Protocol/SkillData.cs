@@ -18,8 +18,8 @@ public sealed class KUnitSkillData
 
         return new NativeUserClassSerializer(serializer).Put(this, (ser, value) =>
         {
-            SerializeSkills(ser, value.EquippedSkill);
-            SerializeSkills(ser, value.EquippedSkillSlotB);
+            SerializeSkillSlots(ser, value.EquippedSkill);
+            SerializeSkillSlots(ser, value.EquippedSkillSlotB);
 
             ser.PutWString(value.SkillSlotBEndDate);
             ser.Put(value.SkillSlotBExpirationState);
@@ -46,8 +46,8 @@ public sealed class KUnitSkillData
 
         return new NativeUserClassSerializer(serializer).TryGet(out value, (ser, existing) =>
         {
-            if (!TryDeserializeSkills(ser, out var equippedSkill) ||
-                !TryDeserializeSkills(ser, out var equippedSkillSlotB))
+            if (!TryDeserializeSkillSlots(ser, out var equippedSkill) ||
+                !TryDeserializeSkillSlots(ser, out var equippedSkillSlotB))
             {
                 return (false, existing);
             }
@@ -95,7 +95,7 @@ public sealed class KUnitSkillData
         });
     }
 
-    private static void SerializeSkills(
+    private static void SerializeSkillSlots(
         NativePrimitiveSerializer serializer,
         IReadOnlyList<KSkillData> skills)
     {
@@ -103,13 +103,13 @@ public sealed class KUnitSkillData
             skill.Serialize(serializer);
     }
 
-    private static bool TryDeserializeSkills(
+    private static bool TryDeserializeSkillSlots(
         NativePrimitiveSerializer serializer,
         out KSkillData[] skills)
     {
         var parsedSkills = new KSkillData[EquippedSkillSlotCount];
 
-        for (var i = 0; i < parsedSkills.Length; i++)
+        for (var i = 0; i < EquippedSkillSlotCount; i++)
         {
             if (!KSkillData.TryDeserialize(serializer, out var skill))
             {
