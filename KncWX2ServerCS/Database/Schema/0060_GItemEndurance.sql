@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS GItemEndurance (
+    ItemUID INTEGER NOT NULL,
+    Endurance INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_GItemEndurance_ItemUID ON GItemEndurance(ItemUID);
