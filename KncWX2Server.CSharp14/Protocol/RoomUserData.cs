@@ -174,9 +174,62 @@ public sealed class KRoomUserInfo
                 !ser.TryGet(out bool isRing) || !ser.TryGet(out bool isGuest) ||
                 !stl.TryGetMap(out SortedDictionary<int, KSubQuestInfo> ongoing,
                     static s => s.TryGet(out int key) ? (true, key) : (false, 0),
-                    (s, _) => throw new NotSupportedException())) return (false, x);
-            // KSubQuestInfo map value reader is supplied separately below to preserve its options-aware payload.
-            return (false, x);
+                    s => KSubQuestInfo.TryDeserialize(s, options, out var item) ? (true, item) : (false, new KSubQuestInfo())) ||
+                !ser.TryGet(out int titleId)) return (false, x);
+
+            string guildName = string.Empty; int guildUid = 0; byte membershipGrade = 0;
+            if (options.GuildTest && (!ser.TryGetWString(out guildName) || !ser.TryGet(out guildUid) || !ser.TryGet(out membershipGrade))) return (false, x);
+            List<KPetInfo> pets = [];
+            if (options.PetSystem && !stl.TryGetVector(out pets,
+                s => KPetInfo.TryDeserialize(s, options, out var item) ? (true, item) : (false, new KPetInfo()))) return (false, x);
+
+            SortedSet<int> questInfo = [];
+            bool useItem = false;
+            if (options.DungeonClearPaymentItem)
+            {
+                if (!stl.TryGetSet(out questInfo, static s => s.TryGet(out int item) ? (true, item) : (false, 0))) return (false, x);
+                if (options.DungeonClearPaymentItemFix && !ser.TryGet(out useItem)) return (false, x);
+            }
+            SortedSet<int> goingQuestInfo = [];
+            if (options.PaymentItemOnGoingQuest && !stl.TryGetSet(out goingQuestInfo,
+                static s => s.TryGet(out int item) ? (true, item) : (false, 0))) return (false, x);
+            bool comeBackUser = false, henirReward = false, enterCashShop = false;
+            if (options.ComeBackUserReward && !ser.TryGet(out comeBackUser)) return (false, x);
+            if (options.NewHenirTest && !ser.TryGet(out henirReward)) return (false, x);
+            SortedSet<int> useSkillBuff = [];
+            if (options.BattleFieldSystem && !stl.TryGetSet(out useSkillBuff,
+                static s => s.TryGet(out int item) ? (true, item) : (false, 0))) return (false, x);
+            if (options.VisitCashShop && !ser.TryGet(out enterCashShop)) return (false, x);
+
+            long ridingUid = 0; ushort ridingId = 0;
+            if (options.RidingPetSystm && (!ser.TryGet(out ridingUid) || !ser.TryGet(out ridingId))) return (false, x);
+            sbyte weddingStatus = 0; long loverUid = 0;
+            if (options.RelationshipSystem && (!ser.TryGet(out weddingStatus) || !ser.TryGet(out loverUid))) return (false, x);
+            int eventQuestClearCount = 0, exchangeCount = 0;
+            if (options.GrowUpSocket && (!ser.TryGet(out eventQuestClearCount) || !ser.TryGet(out exchangeCount))) return (false, x);
+            int gateSupport = 0;
+            if (options.GateOfDarknessSupportEvent && !ser.TryGet(out gateSupport)) return (false, x);
+            bool couple = false; long relationTargetUid = 0; string relationTargetNickname = string.Empty;
+            if (options.RelationshipEventInt && (!ser.TryGet(out couple) || !ser.TryGet(out relationTargetUid) || !ser.TryGetWString(out relationTargetNickname))) return (false, x);
+            long recruiterUid = 0;
+            if (options.RecruitEventBase && !ser.TryGet(out recruiterUid)) return (false, x);
+
+            x.GsUid = gsUid; x.OwnerUserUid = ownerUid; x.ServerGroupId = serverGroupId; x.AuthLevel = authLevel; x.Male = male; x.Age = age;
+            x.UnitUid = unitUid; x.KnmSerialNum = knmSerial; x.UnitClass = unitClass; x.NickName = nickName; x.NumResurrectionStone = resurrectionStone;
+            x.Ip = ip; x.Port = port; x.InternalIp = internalIp; x.InternalPort = internalPort; x.PartyUid = partyUid;
+            x.GamePlayStatus.Clear(); x.GamePlayStatus.AddRange(gameplay); x.BuffInfo.Clear(); x.BuffInfo.AddRange(buffInfo); x.Level = level; x.GameStat = gameStat;
+            x.EquippedItem.Clear(); foreach (var p in equipped) x.EquippedItem.Add(p.Key, p.Value);
+            x.SpecialItem.Clear(); foreach (var p in special) x.SpecialItem.Add(p.Key, p.Value); x.UnitSkillData = unitSkill;
+            x.IsPvpNpc = isPvpNpc; x.OfficialMatchCnt = officialMatchCnt; x.Rating = rating; x.MaxRating = maxRating; x.IsWinBeforeMatch = isWinBeforeMatch;
+            x.Rank = rank; x.RankForServer = rankForServer; x.KFactor = kFactor; x.IsRedistributionUser = redistribution; x.SpiritMax = spiritMax; x.Spirit = spirit;
+            x.IsGameBang = isGameBang; x.PcBangType = pcBangType; x.IsObserver = isObserver; x.BonusRate.Clear(); foreach (var p in bonusRate) x.BonusRate.Add(p.Key, p.Value);
+            x.IsRingOfPvpRebirth = isRing; x.IsGuestUser = isGuest; x.OngoingQuest.Clear(); foreach (var p in ongoing) x.OngoingQuest.Add(p.Key, p.Value); x.TitleId = titleId;
+            x.GuildName = guildName; x.GuildUid = guildUid; x.MembershipGrade = membershipGrade; x.Pet.Clear(); x.Pet.AddRange(pets);
+            x.QuestInfo.Clear(); foreach (var v in questInfo) x.QuestInfo.Add(v); x.UseItem = useItem; x.GoingQuestInfo.Clear(); foreach (var v in goingQuestInfo) x.GoingQuestInfo.Add(v);
+            x.ComeBackUser = comeBackUser; x.HenirReward = henirReward; x.UseSkillBuffInPlay.Clear(); foreach (var v in useSkillBuff) x.UseSkillBuffInPlay.Add(v); x.EnterCashShop = enterCashShop;
+            x.RidingPetUid = ridingUid; x.RidingPetId = ridingId; x.WeddingStatus = weddingStatus; x.LoverUnitUid = loverUid; x.EventQuestClearCount = eventQuestClearCount; x.ExchangeCount = exchangeCount;
+            x.GateOfDarknessSupportEventTime = gateSupport; x.Couple = couple; x.RelationTargetUserUid = relationTargetUid; x.RelationTargetUserNickname = relationTargetNickname; x.RecruiterUnitUid = recruiterUid;
+            return (true, x);
         });
     }
 }
