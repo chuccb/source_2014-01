@@ -57,24 +57,32 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
 
     /// <summary>
     /// Native std::string format: tag, DWORD byte length, then exactly that many raw bytes.
-    /// The native implementation does not write a terminating NUL and does not encode/transform the bytes.
+    /// Native KSerializer does not perform a character encoding conversion.
     /// </summary>
-    public void Put(string value, Encoding? encoding = null)
+    public void Put(ReadOnlySpan<byte> value)
     {
-        ArgumentNullException.ThrowIfNull(value);
-        encoding ??= Encoding.UTF8;
-
-        var byteCount = encoding.GetByteCount(value);
-        WriteLengthPrefixedBytes(TagString, encoding.GetBytes(value), byteCount);
+        WriteLengthPrefixedBytes(TagString, value);
     }
 
     /// <summary>
-    /// Native const char* overload has strlen semantics, therefore embedded NUL characters terminate the value.
+    /// Convenience overload for std::string when its application-level encoding is known.
+    /// The encoding is not part of the native wire format.
     /// </summary>
-    public void PutCString(string value, Encoding? encoding = null)
+    public void Put(string value, Encoding encoding)
     {
         ArgumentNullException.ThrowIfNull(value);
-        encoding ??= Encoding.UTF8;
+        ArgumentNullException.ThrowIfNull(encoding);
+        var bytes = encoding.GetBytes(value);
+        Put(bytes);
+    }
+
+    /// <summary>
+    /// Native const char* overload uses strlen(), therefore an embedded NUL terminates the value.
+    /// </summary>
+    public void PutCString(string value, Encoding encoding)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(encoding);
 
         var nul = value.IndexOf('\0');
         if (nul >= 0)
@@ -85,20 +93,15 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
 
     /// <summary>
     /// Native std::wstring format on MSVC: tag, DWORD byte length, then raw wchar_t bytes.
-    /// MSVC wchar_t is UTF-16 code units and the native serializer does not byte-swap the wchar_t data.
+    /// MSVC wchar_t is 16-bit and the native serializer does not byte-swap wchar_t data.
     /// </summary>
     public void PutWString(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-
-        var byteCount = checked(Encoding.Unicode.GetByteCount(value));
-        var bytes = Encoding.Unicode.GetBytes(value);
-        WriteLengthPrefixedBytes(TagWString, bytes, byteCount);
+        WriteLengthPrefixedBytes(TagWString, Encoding.Unicode.GetBytes(value));
     }
 
-    /// <summary>
-    /// Native const wchar_t* overload has wcslen semantics.
-    /// </summary>
+    /// <summary>Native const wchar_t* overload uses wcslen() semantics.</summary>
     public void PutWCString(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -173,20 +176,21 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
             return false;
         }
 
-        // Native Get(bool&) returns true only for the serialized value 1.
         value = raw == 1;
         return true;
     }
 
-    /// <summary>
-    /// Reads native std::string bytes. The caller chooses the text encoding because native
-    /// std::string itself carries no encoding metadata.
-    /// </summary>
-    public bool TryGetString(out string value, Encoding? encoding = null)
+    /// <summary>Reads native std::string bytes without assuming an application text encoding.</summary>
+    public bool TryGetString(out byte[] value)
     {
-        encoding ??= Encoding.UTF8;
+        return TryReadLengthPrefixedBytes(TagString, out value);
+    }
 
-        if (!TryReadLengthPrefixedBytes(TagString, out var bytes))
+    public bool TryGetString(out string value, Encoding encoding)
+    {
+        ArgumentNullException.ThrowIfNull(encoding);
+
+        if (!TryGetString(out var bytes))
         {
             value = string.Empty;
             return false;
@@ -219,8 +223,8 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
     }
 
     /// <summary>
-    /// Native PutArray format: tag, DWORD element count, then each element serialized by Put().
-    /// This overload handles primitive unmanaged values without assuming packed raw storage.
+    /// Native PutArray framing: tag, DWORD element count, then each element serialized by Put().
+    /// The element operation is explicit so no packed-memory assumption is introduced.
     /// </summary>
     public void PutArray<T>(ReadOnlySpan<T> values, Action<NativePrimitiveSerializer, T> put)
     {
@@ -232,10 +236,7 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
             put(this, value);
     }
 
-    /// <summary>
-    /// Reads native array framing. Element decoding remains delegated to the caller so the exact
-    /// native element type/tag is preserved.
-    /// </summary>
+    /// <summary>Reads the native array framing; callers then decode exactly count serialized elements.</summary>
     public bool TryBeginArray(out uint count)
     {
         if (!ReadTag(TagArray) || !TryGet(out count))
@@ -247,13 +248,13 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
         return true;
     }
 
-    private void WriteLengthPrefixedBytes(byte tag, byte[] bytes, int byteCount)
+    private void WriteLengthPrefixedBytes(byte tag, ReadOnlySpan<byte> bytes)
     {
         WriteTag(tag);
-        Put((uint)byteCount);
+        Put((uint)bytes.Length);
 
-        if (byteCount != 0)
-            _buffer.Write(bytes.AsSpan(0, byteCount));
+        if (!bytes.IsEmpty)
+            _buffer.Write(bytes);
     }
 
     private bool TryReadLengthPrefixedBytes(byte tag, out byte[] bytes)
@@ -337,7 +338,15 @@ public sealed class NativePrimitiveSerializer(KSerBuffer buffer, bool tagging = 
     private bool TryReadByte(byte expectedTag, out byte value)
     {
         value = default;
-        return ReadTag(expectedTag) && _buffer.Read([value]);
+        if (!ReadTag(expectedTag))
+            return false;
+
+        Span<byte> b = stackalloc byte[1];
+        if (!_buffer.Read(b))
+            return false;
+
+        value = b[0];
+        return true;
     }
 
     private bool TryReadInt16(byte expectedTag, out short value)
