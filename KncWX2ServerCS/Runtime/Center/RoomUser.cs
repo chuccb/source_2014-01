@@ -47,6 +47,8 @@ public sealed class RoomUser
     public int MatchWaitTime { get; private set; }
     public int AutoPartyWaitTime { get; private set; }
     public int PvpNpcId { get; private set; }
+    public long RidingPetUid { get; private set; }
+    public ushort RidingPetId { get; private set; }
     public RoomUserStateMachine StateMachine { get; }=new();
     public bool IsPlaying=>StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public void SetLevel(int level)=>Level=level;
@@ -85,6 +87,7 @@ public sealed class RoomUser
     public void SetEnterDefenceDungeon(bool value)=>IsEnterDefenceDungeon=value;
     public void SetMatchWaitTime(int value)=>MatchWaitTime=value;
     public void SetAutoPartyWaitTime(int value)=>AutoPartyWaitTime=value;
+    public void SetRidingPetInfo(long petUid, ushort petId){RidingPetUid=petUid;RidingPetId=petId;}
     public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;RewardEXP=0;RewardPartyEXP=0;StateMachine.Send(RoomUserInput.ToLoad);}
     public void StartPlay(){LoadingProgress=-1;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
     public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;StateMachine.Send(RoomUserInput.ToResult);}
