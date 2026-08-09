@@ -47,6 +47,7 @@ public sealed record ProtocolOptions
     public bool DungeonItem { get; init; }
     public bool PvpRematch { get; init; }
     public bool NewDefenceDungeon { get; init; }
+    public bool ServerBuffSystem { get; init; }
 
     public bool PcBangType { get; init; }
     public bool TitleDataSize { get; init; }
