@@ -1,5 +1,32 @@
 namespace KncWX2Server.CSharp14.Protocol;
 
+public sealed class KRankerInfo
+{
+    public long UnitUid { get; set; }
+    public string NickName { get; set; } = string.Empty;
+
+    public bool Serialize(NativePrimitiveSerializer serializer) =>
+        new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
+        {
+            ser.Put(value.UnitUid);
+            ser.PutWString(value.NickName);
+            return true;
+        });
+
+    public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KRankerInfo value)
+    {
+        value = new();
+        return new NativeUserClassSerializer(serializer).TryGet(out value, static (ser, x) =>
+        {
+            if (!ser.TryGet(out long unitUid) || !ser.TryGetWString(out var nickName))
+                return (false, x);
+            x.UnitUid = unitUid;
+            x.NickName = nickName;
+            return (true, x);
+        });
+    }
+}
+
 public sealed class KHenirRankingInfo
 {
     public int Rank { get; set; }
