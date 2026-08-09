@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Buffers.Binary;
 
 namespace KncWX2Server.Protocol;
 
+/// <summary>Compatibility serializer for the native KSerializer wire format.</summary>
 public sealed class KSerializer
 {
     private KSerBuffer? _buffer;
@@ -49,8 +49,7 @@ public sealed class KSerializer
     public bool Get(out string value)
     {
         value = string.Empty;
-        if (!ReadAndCheckTag(SerializeTag.String) || !Get(out uint size)) return false;
-        if (size > ReadLength || size > int.MaxValue) return false;
+        if (!ReadAndCheckTag(SerializeTag.String) || !Get(out uint size) || size > ReadLength || size > int.MaxValue) return false;
         if (size == 0) return true;
         byte[] bytes = new byte[(int)size];
         if (!ReadBytes(bytes)) return false;
@@ -69,8 +68,7 @@ public sealed class KSerializer
     public bool GetWide(out string value)
     {
         value = string.Empty;
-        if (!ReadAndCheckTag(SerializeTag.WString) || !Get(out uint size)) return false;
-        if ((size & 1) != 0 || size > ReadLength || size > int.MaxValue) return false;
+        if (!ReadAndCheckTag(SerializeTag.WString) || !Get(out uint size) || (size & 1) != 0 || size > ReadLength || size > int.MaxValue) return false;
         if (size == 0) return true;
         byte[] bytes = new byte[(int)size];
         if (!ReadBytes(bytes)) return false;
@@ -97,7 +95,6 @@ public sealed class KSerializer
         byte[] data = new byte[(int)length];
         if (!GetRaw(data)) return false;
         value.Write(data);
-        // Native Get restores m_bCompress but does not transparently decompress.
         if (compressed) value.MarkCompressed();
         return true;
     }
@@ -107,6 +104,21 @@ public sealed class KSerializer
         if (!WriteTag(SerializeTag.UserClass) || !Put(value.PerformerId)) return false;
         if (!WriteTag(SerializeTag.Set) || !Put((uint)value.UidListSize)) return false;
         foreach (long uid in value.UidList) if (!Put(uid)) return false;
+        return true;
+    }
+
+    public bool Get(KPerformerInfo value)
+    {
+        if (!ReadAndCheckTag(SerializeTag.UserClass) || !Get(out uint performerId) || !ReadAndCheckTag(SerializeTag.Set) || !Get(out uint count)) return false;
+        if (count > 2000) return false;
+        var decoded = new List<long>((int)count);
+        for (uint i = 0; i < count; ++i)
+        {
+            if (!Get(out long uid)) return false;
+            decoded.Add(uid);
+        }
+        value.PerformerId = performerId;
+        foreach (long uid in decoded) value.AddUid(uid);
         return true;
     }
 
