@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>KncWX2Server.Runtime</AssemblyName>
+    <RootNamespace>KncWX2Server.Runtime</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Protocol\KncWX2Server.Protocol.csproj" />
+  </ItemGroup>
+</Project>
