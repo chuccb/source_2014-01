@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS GSpirit (
+    unitUID INTEGER NOT NULL,
+    Spirit INTEGER NOT NULL,
+    RegDate TEXT NOT NULL,
+    Flag INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_GSpirit_unitUID ON GSpirit(unitUID);
