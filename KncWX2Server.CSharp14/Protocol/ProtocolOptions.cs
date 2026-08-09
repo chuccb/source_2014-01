@@ -37,4 +37,5 @@ public sealed record ProtocolOptions
     public bool LimitedDungeonPlayTimes { get; init; }
     public bool GuildSkillTest { get; init; }
     public bool SkillNote { get; init; }
+    public bool DeleteItem { get; init; }
 }
