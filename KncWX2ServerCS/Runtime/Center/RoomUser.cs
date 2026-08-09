@@ -22,7 +22,7 @@ public sealed class RoomUser
     public bool IsPvpNpc { get; private set; }
     public bool IsBoss { get; private set; }
     public bool IsEnterCashShopUser { get; private set; }
-    public bool IsSuccessResult { get; private set; }=true;
+    public bool IsSuccessResult { get; private set; }
     public bool IsGameBang { get; private set; }
     public int PcBangType { get; private set; }=-1;
     public bool HavePet { get; private set; }
