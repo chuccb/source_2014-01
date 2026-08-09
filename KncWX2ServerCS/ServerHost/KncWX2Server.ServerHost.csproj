@@ -7,5 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Common\KncWX2Server.Common.csproj" />
     <ProjectReference Include="..\Protocol\KncWX2Server.Protocol.csproj" />
+    <ProjectReference Include="..\Database\KncWX2Server.Database.csproj" />
   </ItemGroup>
 </Project>
