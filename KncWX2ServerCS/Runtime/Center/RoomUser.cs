@@ -39,6 +39,13 @@ public sealed class RoomUser
     public int StageId { get; private set; }=-1;
     public int SubStageId { get; private set; }=-1;
     public int RebirthPos { get; private set; }
+    public bool IsAcceptRematch { get; private set; }
+    public bool IsPrepareForDefence { get; private set; }
+    public bool IsRecvEnterPopupReply { get; private set; }
+    public bool IsEnterDefenceDungeon { get; private set; }
+    public int MatchWaitTime { get; private set; }
+    public int AutoPartyWaitTime { get; private set; }
+    public int PvpNpcId { get; private set; }
     public RoomUserStateMachine StateMachine { get; }=new();
     public bool IsPlaying=>StateMachine.State is RoomUserState.Load or RoomUserState.Play;
     public void SetLevel(int level)=>Level=level;
@@ -49,6 +56,7 @@ public sealed class RoomUser
     public void SetPitIn(bool value)=>IsPitIn=value;
     public void SetTrade(bool value){IsInTrade=value;if(value)IsReady=false;}
     public void SetPvpNpc(bool value)=>IsPvpNpc=value;
+    public void SetPvpNpcId(int value)=>PvpNpcId=value;
     public void SetIsBoss(bool value)=>IsBoss=value;
     public void SetEnterCashShopUser(bool value)=>IsEnterCashShopUser=value;
     public void SetSuccessResult(bool value)=>IsSuccessResult=value;
@@ -69,6 +77,12 @@ public sealed class RoomUser
     public void SetStage(int value)=>StageId=value;
     public void SetSubStage(int value)=>SubStageId=value;
     public void SetRebirthPos(int value)=>RebirthPos=value;
+    public void SetRematch(bool value)=>IsAcceptRematch=value;
+    public void SetPrepareForDefence(bool value)=>IsPrepareForDefence=value;
+    public void SetRecvEnterPopupReply(bool value)=>IsRecvEnterPopupReply=value;
+    public void SetEnterDefenceDungeon(bool value)=>IsEnterDefenceDungeon=value;
+    public void SetMatchWaitTime(int value)=>MatchWaitTime=value;
+    public void SetAutoPartyWaitTime(int value)=>AutoPartyWaitTime=value;
     public void StartGame(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;RewardEXP=0;RewardPartyEXP=0;StateMachine.Send(RoomUserInput.ToLoad);}
     public void StartPlay(){LoadingProgress=-1;IsStageLoaded=false;NumKill=0;NumMDKill=0;NumDie=0;IsDie=false;HP=-1f;IsSuccessResult=true;StateMachine.Send(RoomUserInput.ToPlay);}
     public void EndPlay(){LoadingProgress=0;IsStageLoaded=false;StageId=-1;SubStageId=-1;RebirthPos=0;StateMachine.Send(RoomUserInput.ToResult);}
