@@ -121,6 +121,97 @@ public static class RoomUserManagerNativeParityExtensions
     public static IReadOnlyList<long> GetLiveMemberList(this RoomUserManager manager)
         => EnumerateGameUnitUids(manager).Distinct().ToArray();
 
+    public static bool SetRematch(this RoomUserManager manager, long unitUid, bool accept)
+    {
+        var user = manager.GetUser(unitUid);
+        if (user is null) return false;
+        user.SetRematch(accept);
+        return true;
+    }
+
+    public static bool SetAllRematch(this RoomUserManager manager, bool accept)
+    {
+        foreach (var unitUid in EnumerateGameUnitUids(manager))
+            manager.GetUser(unitUid)?.SetRematch(accept);
+        return true;
+    }
+
+    public static bool IsAllPlayerWantRematch(this RoomUserManager manager)
+    {
+        var users = EnumerateGameUnitUids(manager).Select(manager.GetUser).Where(u => u is not null).Cast<RoomUser>().ToArray();
+        if (users.Any(u => u.IsPvpNpc || !u.IsAcceptRematch)) return false;
+        var red = users.Count(u => u.Team == 0);
+        var blue = users.Count(u => u.Team == 1);
+        return red == blue && red > 0;
+    }
+
+    public static void SetAllPrepareForDefenceDungeon(this RoomUserManager manager, bool value)
+    {
+        foreach (var unitUid in EnumerateGameUnitUids(manager))
+            manager.GetUser(unitUid)?.SetPrepareForDefence(value);
+    }
+
+    public static bool SetPrepareForDefenceDungeon(this RoomUserManager manager, long unitUid, bool value)
+    {
+        var user = manager.GetUser(unitUid);
+        if (user is null) return false;
+        user.SetPrepareForDefence(value);
+        return true;
+    }
+
+    public static bool IsAllPlayerPrepareForDefenceDungeon(this RoomUserManager manager)
+    {
+        var users = EnumerateGameUnitUids(manager).Select(manager.GetUser).Where(u => u is not null).Cast<RoomUser>().ToArray();
+        return users.Length > 0 && users.All(u => u.IsPrepareForDefence);
+    }
+
+    public static bool SetEnterDefenceDungeon(this RoomUserManager manager, long unitUid, bool agree)
+    {
+        var user = manager.GetUser(unitUid);
+        if (user is null) return false;
+        user.SetRecvEnterPopupReply(true);
+        user.SetEnterDefenceDungeon(agree);
+        return true;
+    }
+
+    public static void SetAllEnterDefenceDungeon(this RoomUserManager manager)
+    {
+        foreach (var unitUid in EnumerateGameUnitUids(manager))
+        {
+            var user = manager.GetUser(unitUid);
+            if (user is null || user.IsRecvEnterPopupReply) continue;
+            user.SetRecvEnterPopupReply(true);
+            user.SetEnterDefenceDungeon(true);
+        }
+    }
+
+    public static bool SetMatchWaitTime(this RoomUserManager manager, long unitUid, int value)
+    {
+        var user = manager.GetUser(unitUid);
+        if (user is null) return false;
+        user.SetMatchWaitTime(value);
+        return true;
+    }
+
+    public static bool SetAutoPartyWaitTime(this RoomUserManager manager, long unitUid, int value)
+    {
+        var user = manager.GetUser(unitUid);
+        if (user is null) return false;
+        user.SetAutoPartyWaitTime(value);
+        return true;
+    }
+
+    public static bool IsPvpNpc(this RoomUserManager manager, long unitUid)
+        => manager.GetUser(unitUid)?.IsPvpNpc == true;
+
+    public static bool IsOnlyPvpNpcInRoom(this RoomUserManager manager, out IReadOnlyList<long> npcUnitUids)
+    {
+        var users = EnumerateGameUnitUids(manager).Select(manager.GetUser).Where(u => u is not null).Cast<RoomUser>().ToArray();
+        var ids = users.Where(u => u.IsPvpNpc).Select(u => u.Cid).ToArray();
+        npcUnitUids = ids;
+        return users.All(u => u.IsPvpNpc);
+    }
+
     private static IEnumerable<long> EnumerateGameUnitUids(RoomUserManager manager)
     {
         foreach (var group in manager.GetUserList(0, RoomUserManager.UserListType.Game).Values)
