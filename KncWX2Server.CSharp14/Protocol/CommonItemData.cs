@@ -9,7 +9,12 @@ public sealed class KItemAttributeEnchantInfo
 
     public bool Serialize(NativePrimitiveSerializer serializer) =>
         new NativeUserClassSerializer(serializer).Put(this, static (ser, value) =>
-            ser.Put(value.AttribEnchant0) && ser.Put(value.AttribEnchant1) && ser.Put(value.AttribEnchant2));
+        {
+            ser.Put(value.AttribEnchant0);
+            ser.Put(value.AttribEnchant1);
+            ser.Put(value.AttribEnchant2);
+            return true;
+        });
 
     public static bool TryDeserialize(NativePrimitiveSerializer serializer, out KItemAttributeEnchantInfo value)
     {
