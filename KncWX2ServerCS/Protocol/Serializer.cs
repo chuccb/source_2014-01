@@ -331,7 +331,10 @@ public sealed class KSerializer
         return PutContainer(SerializeTag.Set, values.ToArray(), put);
     }
 
-    /// <summary>Native STL map helper: map tag, DWORD count, then key/value pairs without pair tags.</summary>
+    /// <summary>
+    /// Native STL map helper: map tag, DWORD count, then a pair tag followed by
+    /// the key and value for every entry.
+    /// </summary>
     public bool PutMap<TKey, TValue>(
         IReadOnlyDictionary<TKey, TValue> values,
         Func<KSerializer, TKey, bool> putKey,
@@ -349,7 +352,9 @@ public sealed class KSerializer
 
         foreach (var pair in values)
         {
-            if (!putKey(this, pair.Key) || !putValue(this, pair.Value))
+            if (!WriteTag(SerializeTag.Pair) ||
+                !putKey(this, pair.Key) ||
+                !putValue(this, pair.Value))
             {
                 return false;
             }
@@ -358,7 +363,7 @@ public sealed class KSerializer
         return true;
     }
 
-    /// <summary>Native STL map reader: clear the destination, then insert each decoded key/value pair.</summary>
+    /// <summary>Native STL map reader: clear the destination, then insert each decoded pair.</summary>
     public bool GetMap<TKey, TValue>(
         IDictionary<TKey, TValue> values,
         Func<KSerializer, (bool Ok, TKey Value)> getKey,
@@ -377,6 +382,11 @@ public sealed class KSerializer
         values.Clear();
         for (uint i = 0; i < count; i++)
         {
+            if (!ReadAndCheckTag(SerializeTag.Pair))
+            {
+                return false;
+            }
+
             var key = getKey(this);
             if (!key.Ok)
             {
