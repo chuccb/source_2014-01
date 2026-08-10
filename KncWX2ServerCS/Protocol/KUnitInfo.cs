@@ -43,7 +43,7 @@ public sealed class KUnitInfo
     public KStat GameStat { get; } = new();
 
     public KLastPositionInfo LastPosition { get; } = new();
-    public List<KRecordBuffInfo> BuffInfo { get; } = [];
+    public List<KBuffInfo> BuffInfo { get; } = [];
     public int LegacyMapId { get; set; }
     public byte LegacyLastTouchLineIndex { get; set; }
     public ushort LegacyLastPosValue { get; set; }
