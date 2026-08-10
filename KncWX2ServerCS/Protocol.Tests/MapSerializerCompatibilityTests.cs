@@ -26,8 +26,10 @@ static class MapSerializerCompatibilityTests
         [
             22, // SerializeTag.Map
             0, 0, 0, 2,
+            16, // SerializeTag.Pair
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
+            16, // SerializeTag.Pair
             5, 0, 0, 0, 10,
             5, 0, 0, 0, 20,
         ];
@@ -41,8 +43,10 @@ static class MapSerializerCompatibilityTests
         [
             22, // SerializeTag.Map
             0, 0, 0, 2,
+            16, // SerializeTag.Pair
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
+            16, // SerializeTag.Pair
             5, 0, 0, 0, 10,
             5, 0, 0, 0, 20,
         ];
