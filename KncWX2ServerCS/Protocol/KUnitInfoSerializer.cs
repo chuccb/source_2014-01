@@ -84,6 +84,7 @@ public static class KUnitInfoSerializer
             return false;
         }
 
+        // Native order is all EquippedSkill entries, then all SlotB entries.
         foreach (var skill in value.EquippedSkill)
         {
             if (!serializer.Put(skill))
@@ -159,13 +160,8 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        if (options.SkillNote
-            && !serializer.GetVector(value.SkillNote, static s => ReadInt(s)))
-        {
-            return false;
-        }
-
-        return true;
+        return !options.SkillNote
+            || serializer.GetVector(value.SkillNote, static s => ReadInt(s));
     }
 
     public static bool Put(this KSerializer serializer, KDungeonClearInfo value) =>
@@ -265,6 +261,23 @@ public static class KUnitInfoSerializer
         return true;
     }
 
+    public static bool Put(this KSerializer serializer, KRecordBuffInfo value) =>
+        serializer.Put(value.BuffId) && serializer.PutW(value.StartTime);
+
+    public static bool Get(this KSerializer serializer, KRecordBuffInfo value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.Get(out int buffId) || !serializer.GetW(out var startTime))
+        {
+            return false;
+        }
+
+        value.BuffId = buffId;
+        value.StartTime = startTime;
+        return true;
+    }
+
     public static bool Put(this KSerializer serializer, KItemAttributeEnchantInfo value) =>
         serializer.Put(value.AttribEnchant0)
         && serializer.Put(value.AttribEnchant1)
@@ -306,13 +319,11 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        if (options.NewItemSystem201305)
+        if (options.NewItemSystem201305
+            && (!PutSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
+                || !serializer.Put(value.ItemState)))
         {
-            if (!PutSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
-                || !serializer.Put(value.ItemState))
-            {
-                return false;
-            }
+            return false;
         }
 
         return !options.GoldTicket || serializer.Put(value.GoldTicketKeyUid);
@@ -346,14 +357,15 @@ public static class KUnitInfoSerializer
         value.Period = period;
         value.ExpirationDate = expirationDate;
 
+        if (options.NewItemSystem201305
+            && (!GetSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
+                || !serializer.Get(out sbyte itemState)))
+        {
+            return false;
+        }
+
         if (options.NewItemSystem201305)
         {
-            if (!GetSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
-                || !serializer.Get(out sbyte itemState))
-            {
-                return false;
-            }
-
             value.ItemState = itemState;
         }
 
@@ -417,23 +429,6 @@ public static class KUnitInfoSerializer
         value.GuildName = guildName;
         value.MembershipGrade = membershipGrade;
         value.HonorPoint = honorPoint;
-        return true;
-    }
-
-    public static bool Put(this KSerializer serializer, KRecordBuffInfo value) =>
-        serializer.Put(value.BuffId) && serializer.PutW(value.StartTime);
-
-    public static bool Get(this KSerializer serializer, KRecordBuffInfo value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-
-        if (!serializer.Get(out int buffId) || !serializer.GetW(out var startTime))
-        {
-            return false;
-        }
-
-        value.BuffId = buffId;
-        value.StartTime = startTime;
         return true;
     }
 
@@ -550,13 +545,16 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        if (!serializer.Get(out value.Win)
-            || !serializer.Get(out value.Lose)
+        if (!serializer.Get(out int win)
+            || !serializer.Get(out int lose)
             || !serializer.GetMap(value.DungeonClear, static s => ReadInt(s), static s => ReadDungeonClear(s))
             || !serializer.GetMap(value.TCClear, static s => ReadInt(s), static s => ReadTCClear(s)))
         {
             return false;
         }
+
+        value.Win = win;
+        value.Lose = lose;
 
         if (options.LimitedDungeonPlayTimes
             && !serializer.GetMap(value.DungeonPlay, static s => ReadInt(s), static s => ReadDungeonPlay(s)))
@@ -564,33 +562,47 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        if (!serializer.GetMap(value.EquippedItem,
-                static s => ReadLong(s),
-                s => ReadInventoryItem(s, options))
+        if (!serializer.GetMap(value.EquippedItem, static s => ReadLong(s), s => ReadInventoryItem(s, options))
             || !serializer.Get(value.UnitSkillData, options)
-            || !serializer.Get(out value.IsParty)
-            || !serializer.Get(out value.SpiritMax)
-            || !serializer.Get(out value.Spirit)
-            || !serializer.Get(out value.IsGameBang))
+            || !serializer.Get(out bool isParty)
+            || !serializer.Get(out int spiritMax)
+            || !serializer.Get(out int spirit)
+            || !serializer.Get(out bool isGameBang))
         {
             return false;
         }
 
-        if (options.PcBangType && !serializer.Get(out value.PcBangType))
+        value.IsParty = isParty;
+        value.SpiritMax = spiritMax;
+        value.Spirit = spirit;
+        value.IsGameBang = isGameBang;
+
+        if (options.PcBangType && !serializer.Get(out int pcBangType))
         {
             return false;
+        }
+
+        if (options.PcBangType)
+        {
+            value.PcBangType = pcBangType;
         }
 
         if (options.TitleDataSize)
         {
-            if (!serializer.Get(out value.TitleId))
+            if (!serializer.Get(out int titleId))
             {
                 return false;
             }
+
+            value.TitleId = titleId;
         }
-        else if (!serializer.Get(out value.LegacyTitleId))
+        else if (!serializer.Get(out short legacyTitleId))
         {
             return false;
+        }
+        else
+        {
+            value.LegacyTitleId = legacyTitleId;
         }
 
         if (options.GuildTest && !serializer.Get(value.UserGuildInfo))
@@ -649,17 +661,21 @@ public static class KUnitInfoSerializer
     {
         if (options.PvpNewSystem)
         {
-            return serializer.Put(value.OfficialMatchCount)
-                && serializer.Put(value.Rating)
-                && serializer.Put(value.MaxRating)
-                && serializer.Put(value.RPoint)
-                && serializer.Put(value.APoint)
-                && serializer.Put(value.IsWinBeforeMatch)
-                && (!options.PvpSeason2
-                    || serializer.Put(value.Rank)
-                    && serializer.Put(value.KFactor)
-                    && serializer.Put(value.IsRedistributionUser)
-                    && serializer.Put(value.PastSeasonWin));
+            if (!serializer.Put(value.OfficialMatchCount)
+                || !serializer.Put(value.Rating)
+                || !serializer.Put(value.MaxRating)
+                || !serializer.Put(value.RPoint)
+                || !serializer.Put(value.APoint)
+                || !serializer.Put(value.IsWinBeforeMatch))
+            {
+                return false;
+            }
+
+            return !options.PvpSeason2
+                || serializer.Put(value.Rank)
+                && serializer.Put(value.KFactor)
+                && serializer.Put(value.IsRedistributionUser)
+                && serializer.Put(value.PastSeasonWin);
         }
 
         return serializer.Put(value.PvpEmblem)
@@ -688,22 +704,23 @@ public static class KUnitInfoSerializer
             value.APoint = aPoint;
             value.IsWinBeforeMatch = isWinBeforeMatch;
 
-            if (options.PvpSeason2)
+            if (!options.PvpSeason2)
             {
-                if (!serializer.Get(out sbyte rank)
-                    || !serializer.Get(out float kFactor)
-                    || !serializer.Get(out bool isRedistributionUser)
-                    || !serializer.Get(out int pastSeasonWin))
-                {
-                    return false;
-                }
-
-                value.Rank = rank;
-                value.KFactor = kFactor;
-                value.IsRedistributionUser = isRedistributionUser;
-                value.PastSeasonWin = pastSeasonWin;
+                return true;
             }
 
+            if (!serializer.Get(out sbyte rank)
+                || !serializer.Get(out float kFactor)
+                || !serializer.Get(out bool isRedistributionUser)
+                || !serializer.Get(out int pastSeasonWin))
+            {
+                return false;
+            }
+
+            value.Rank = rank;
+            value.KFactor = kFactor;
+            value.IsRedistributionUser = isRedistributionUser;
+            value.PastSeasonWin = pastSeasonWin;
             return true;
         }
 
@@ -814,16 +831,27 @@ public static class KUnitInfoSerializer
             value.RestoreAvailableDate = restoreAvailableDate;
         }
 
-        if (options.AddWarpButton && !serializer.Get(out value.WarpVipEndDate))
+        if (options.AddWarpButton && !serializer.Get(out long warpVipEndDate))
         {
             return false;
         }
 
+        if (options.AddWarpButton)
+        {
+            value.WarpVipEndDate = warpVipEndDate;
+        }
+
         if (options.GrowUpSocket
-            && (!serializer.Get(out value.EventQuestClearCount)
-                || !serializer.Get(out value.ExchangeCount)))
+            && (!serializer.Get(out int eventQuestClearCount)
+                || !serializer.Get(out int exchangeCount)))
         {
             return false;
+        }
+
+        if (options.GrowUpSocket)
+        {
+            value.EventQuestClearCount = eventQuestClearCount;
+            value.ExchangeCount = exchangeCount;
         }
 
         if (options.ChinaSpiritEvent)
@@ -835,23 +863,37 @@ public static class KUnitInfoSerializer
 
             for (var index = 0; index < value.ChinaSpirit.Length; index++)
             {
-                if (!serializer.Get(out value.ChinaSpirit[index]))
+                if (!serializer.Get(out int spirit))
                 {
                     return false;
                 }
+
+                value.ChinaSpirit[index] = spirit;
             }
         }
 
-        if (options.RecruitEventQuestForNewUser && !serializer.Get(out value.Recruit))
+        if (options.RecruitEventQuestForNewUser
+            && !serializer.Get(out bool recruit))
         {
             return false;
         }
 
+        if (options.RecruitEventQuestForNewUser)
+        {
+            value.Recruit = recruit;
+        }
+
         if (options.NewYearEvent2014
-            && (!serializer.Get(out value.OldYearMissionRewardedLevel)
-                || !serializer.Get(out value.NewYearMissionStepId)))
+            && (!serializer.Get(out byte oldYearMissionRewardedLevel)
+                || !serializer.Get(out int newYearMissionStepId)))
         {
             return false;
+        }
+
+        if (options.NewYearEvent2014)
+        {
+            value.OldYearMissionRewardedLevel = oldYearMissionRewardedLevel;
+            value.NewYearMissionStepId = newYearMissionStepId;
         }
 
         return true;
@@ -876,15 +918,10 @@ public static class KUnitInfoSerializer
             ? serializer.Put(checked((short)value))
             : serializer.Put(checked((sbyte)value));
 
-    private static bool GetSlotId(KSerializer serializer, out int value, bool expanded)
-    {
-        if (expanded)
-        {
-            return ReadShortAsInt(serializer, out value);
-        }
-
-        return ReadSByteAsInt(serializer, out value);
-    }
+    private static bool GetSlotId(KSerializer serializer, out int value, bool expanded) =>
+        expanded
+            ? ReadShortAsInt(serializer, out value)
+            : ReadSByteAsInt(serializer, out value);
 
     private static (bool Ok, int Value) ReadInt(KSerializer serializer)
     {
@@ -895,12 +932,6 @@ public static class KUnitInfoSerializer
     private static (bool Ok, long Value) ReadLong(KSerializer serializer)
     {
         var ok = serializer.Get(out long value);
-        return (ok, value);
-    }
-
-    private static (bool Ok, short Value) ReadShort(KSerializer serializer)
-    {
-        var ok = serializer.Get(out short value);
         return (ok, value);
     }
 
