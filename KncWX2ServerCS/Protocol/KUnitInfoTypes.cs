@@ -29,6 +29,38 @@ public sealed class KStat
     };
 }
 
+/// <summary>
+/// Native KGameStat has the same five serialized fields and order as KStat.
+/// It remains a distinct model because the native protocol has a distinct type.
+/// </summary>
+public sealed class KGameStat
+{
+    public int BaseHp { get; set; }
+    public int AtkPhysic { get; set; }
+    public int AtkMagic { get; set; }
+    public int DefPhysic { get; set; }
+    public int DefMagic { get; set; }
+
+    public void Add(KGameStat other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        BaseHp += other.BaseHp;
+        AtkPhysic += other.AtkPhysic;
+        AtkMagic += other.AtkMagic;
+        DefPhysic += other.DefPhysic;
+        DefMagic += other.DefMagic;
+    }
+
+    public KGameStat Scale(float factor) => new()
+    {
+        BaseHp = (int)(BaseHp * factor),
+        AtkPhysic = (int)(AtkPhysic * factor),
+        AtkMagic = (int)(AtkMagic * factor),
+        DefPhysic = (int)(DefPhysic * factor),
+        DefMagic = (int)(DefMagic * factor),
+    };
+}
+
 /// <summary>Native KSkillData: short skill id followed by one-byte skill level.</summary>
 public sealed class KSkillData
 {
@@ -98,4 +130,39 @@ public sealed class KUserGuildInfo
     public string GuildName { get; set; } = string.Empty;
     public byte MembershipGrade { get; set; }
     public int HonorPoint { get; set; }
+}
+
+/// <summary>Native KItemAttributeEnchantInfo: three one-byte attribute-enchant values.</summary>
+public sealed class KItemAttributeEnchantInfo
+{
+    public sbyte AttribEnchant0 { get; set; }
+    public sbyte AttribEnchant1 { get; set; }
+    public sbyte AttribEnchant2 { get; set; }
+}
+
+/// <summary>Native KItemInfo used by KInventoryItemInfo.</summary>
+public sealed class KItemInfo
+{
+    public int ItemId { get; set; }
+    public sbyte UsageType { get; set; }
+    public int Quantity { get; set; } = 1;
+    public short Endurance { get; set; }
+    public byte SealData { get; set; }
+    public sbyte EnchantLevel { get; set; }
+    public KItemAttributeEnchantInfo AttributeEnchantInfo { get; } = new();
+    public List<int> ItemSocket { get; } = [];
+    public List<int> RandomSocket { get; } = [];
+    public sbyte ItemState { get; set; }
+    public short Period { get; set; }
+    public string ExpirationDate { get; set; } = string.Empty;
+    public long GoldTicketKeyUid { get; set; }
+}
+
+/// <summary>Native KInventoryItemInfo used by KUnitInfo's equipped-item map.</summary>
+public sealed class KInventoryItemInfo
+{
+    public long ItemUid { get; set; }
+    public sbyte SlotCategory { get; set; }
+    public int SlotId { get; set; }
+    public KItemInfo ItemInfo { get; } = new();
 }
