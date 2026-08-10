@@ -163,6 +163,115 @@ public static class KUnitInfoSerializer
             || serializer.GetVector(value.SkillNote, static s => ReadInt(s));
     }
 
+    public static bool Put(this KSerializer serializer, KBuffBehaviorFactor value) =>
+        serializer.Put(value.Type)
+        && serializer.PutVector(value.Values, static (s, item) => s.Put(item));
+
+    public static bool Get(this KSerializer serializer, KBuffBehaviorFactor value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.Get(out uint type)
+            || !serializer.GetVector(value.Values, static s => ReadFloat(s)))
+        {
+            return false;
+        }
+
+        value.Type = type;
+        return true;
+    }
+
+    public static bool Put(this KSerializer serializer, KBuffFinalizerFactor value) =>
+        serializer.Put(value.Type)
+        && serializer.PutVector(value.Values, static (s, item) => s.Put(item));
+
+    public static bool Get(this KSerializer serializer, KBuffFinalizerFactor value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.Get(out uint type)
+            || !serializer.GetVector(value.Values, static s => ReadFloat(s)))
+        {
+            return false;
+        }
+
+        value.Type = type;
+        return true;
+    }
+
+    public static bool Put(this KSerializer serializer, KBuffIdentity value) =>
+        serializer.Put(value.BuffTempletId)
+        && serializer.Put(value.UniqueNumber);
+
+    public static bool Get(this KSerializer serializer, KBuffIdentity value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.Get(out int buffTempletId) || !serializer.Get(out uint uniqueNumber))
+        {
+            return false;
+        }
+
+        value.BuffTempletId = buffTempletId;
+        value.UniqueNumber = uniqueNumber;
+        return true;
+    }
+
+    public static bool Put(this KSerializer serializer, KBuffFactor value) =>
+        serializer.PutVector(value.BehaviorFactors, static (s, item) => s.Put(item))
+        && serializer.PutVector(value.FinalizerFactors, static (s, item) => s.Put(item))
+        && serializer.Put(value.BuffIdentity)
+        && serializer.Put(value.MessageGameUnitUid)
+        && serializer.Put(value.AccumulationMultiplier)
+        && serializer.Put(value.AccumulationCountNow)
+        && serializer.Put(value.IsMessageGameUnitNpc)
+        && serializer.Put(value.FactorId);
+
+    public static bool Get(this KSerializer serializer, KBuffFactor value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.GetVector(value.BehaviorFactors, static s => ReadBehaviorFactor(s))
+            || !serializer.GetVector(value.FinalizerFactors, static s => ReadFinalizerFactor(s))
+            || !serializer.Get(value.BuffIdentity)
+            || !serializer.Get(out long messageGameUnitUid)
+            || !serializer.Get(out float accumulationMultiplier)
+            || !serializer.Get(out byte accumulationCountNow)
+            || !serializer.Get(out bool isMessageGameUnitNpc)
+            || !serializer.Get(out int factorId))
+        {
+            return false;
+        }
+
+        value.MessageGameUnitUid = messageGameUnitUid;
+        value.AccumulationMultiplier = accumulationMultiplier;
+        value.AccumulationCountNow = accumulationCountNow;
+        value.IsMessageGameUnitNpc = isMessageGameUnitNpc;
+        value.FactorId = factorId;
+        return true;
+    }
+
+    public static bool Put(this KSerializer serializer, KBuffInfo value) =>
+        serializer.Put(value.FactorInfo)
+        && serializer.Put(value.BuffStartTime)
+        && serializer.Put(value.BuffEndTime);
+
+    public static bool Get(this KSerializer serializer, KBuffInfo value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (!serializer.Get(value.FactorInfo)
+            || !serializer.Get(out long buffStartTime)
+            || !serializer.Get(out long buffEndTime))
+        {
+            return false;
+        }
+
+        value.BuffStartTime = buffStartTime;
+        value.BuffEndTime = buffEndTime;
+        return true;
+    }
+
     public static bool Put(this KSerializer serializer, KDungeonClearInfo value) =>
         serializer.Put(value.DungeonId)
         && serializer.Put(value.MaxScore)
@@ -260,23 +369,6 @@ public static class KUnitInfoSerializer
         return true;
     }
 
-    public static bool Put(this KSerializer serializer, KRecordBuffInfo value) =>
-        serializer.Put(value.BuffId) && serializer.PutW(value.StartTime);
-
-    public static bool Get(this KSerializer serializer, KRecordBuffInfo value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-
-        if (!serializer.Get(out int buffId) || !serializer.GetW(out var startTime))
-        {
-            return false;
-        }
-
-        value.BuffId = buffId;
-        value.StartTime = startTime;
-        return true;
-    }
-
     public static bool Put(this KSerializer serializer, KItemAttributeEnchantInfo value) =>
         serializer.Put(value.AttribEnchant0)
         && serializer.Put(value.AttribEnchant1)
@@ -316,7 +408,6 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        // Native order: random sockets and item state precede period and expiration date.
         if (options.NewItemSystem201305
             && (!PutSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
                 || !serializer.Put(value.ItemState)))
@@ -943,9 +1034,15 @@ public static class KUnitInfoSerializer
         return (ok, value);
     }
 
-    private static (bool Ok, int Value) ReadShortAsInt(KSerializer serializer)
+    private static (bool Ok, short Value) ReadShort(KSerializer serializer)
     {
         var ok = serializer.Get(out short value);
+        return (ok, value);
+    }
+
+    private static (bool Ok, float Value) ReadFloat(KSerializer serializer)
+    {
+        var ok = serializer.Get(out float value);
         return (ok, value);
     }
 
@@ -969,9 +1066,21 @@ public static class KUnitInfoSerializer
         return (serializer.Get(value), value);
     }
 
-    private static (bool Ok, KRecordBuffInfo Value) ReadBuff(KSerializer serializer)
+    private static (bool Ok, KBuffBehaviorFactor Value) ReadBehaviorFactor(KSerializer serializer)
     {
-        var value = new KRecordBuffInfo();
+        var value = new KBuffBehaviorFactor();
+        return (serializer.Get(value), value);
+    }
+
+    private static (bool Ok, KBuffFinalizerFactor Value) ReadFinalizerFactor(KSerializer serializer)
+    {
+        var value = new KBuffFinalizerFactor();
+        return (serializer.Get(value), value);
+    }
+
+    private static (bool Ok, KBuffInfo Value) ReadBuff(KSerializer serializer)
+    {
+        var value = new KBuffInfo();
         return (serializer.Get(value), value);
     }
 
