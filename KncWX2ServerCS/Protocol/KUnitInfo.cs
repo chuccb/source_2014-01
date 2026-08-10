@@ -62,7 +62,7 @@ public sealed class KUnitInfo
     public int SpiritMax { get; set; }
     public int Spirit { get; set; }
     public bool IsGameBang { get; set; }
-    public int PcBangType { get; set; }
+    public int PcBangType { get; set; } = -1;
     public int TitleId { get; set; }
     public short LegacyTitleId { get; set; }
 
@@ -79,5 +79,5 @@ public sealed class KUnitInfo
     public int[] ChinaSpirit { get; } = new int[6];
     public bool Recruit { get; set; }
     public byte OldYearMissionRewardedLevel { get; set; }
-    public int NewYearMissionStepId { get; set; }
+    public int NewYearMissionStepId { get; set; } = -1;
 }
