@@ -55,11 +55,46 @@ public sealed class KUnitSkillData
     private static KSkillData[] CreateSkillSlots() => [new(), new(), new(), new()];
 }
 
-/// <summary>Native KRecordBuffInfo used by the reform-the-gate-of-darkness buff vector.</summary>
-public sealed class KRecordBuffInfo
+/// <summary>Native KBuffBehaviorFactor.</summary>
+public sealed class KBuffBehaviorFactor
 {
-    public int BuffId { get; set; }
-    public string StartTime { get; set; } = string.Empty;
+    public uint Type { get; set; }
+    public List<float> Values { get; } = [];
+}
+
+/// <summary>Native KBuffFinalizerFactor.</summary>
+public sealed class KBuffFinalizerFactor
+{
+    public uint Type { get; set; }
+    public List<float> Values { get; } = [];
+}
+
+/// <summary>Native KBuffIdentity.</summary>
+public sealed class KBuffIdentity
+{
+    public int BuffTempletId { get; set; }
+    public uint UniqueNumber { get; set; }
+}
+
+/// <summary>Native KBuffFactor contained by KBuffInfo.</summary>
+public sealed class KBuffFactor
+{
+    public List<KBuffBehaviorFactor> BehaviorFactors { get; } = [];
+    public List<KBuffFinalizerFactor> FinalizerFactors { get; } = [];
+    public KBuffIdentity BuffIdentity { get; } = new();
+    public long MessageGameUnitUid { get; set; }
+    public float AccumulationMultiplier { get; set; }
+    public byte AccumulationCountNow { get; set; }
+    public bool IsMessageGameUnitNpc { get; set; }
+    public int FactorId { get; set; }
+}
+
+/// <summary>Native KBuffInfo used by KUnitInfo's reform-the-gate-of-darkness vector.</summary>
+public sealed class KBuffInfo
+{
+    public KBuffFactor FactorInfo { get; } = new();
+    public long BuffStartTime { get; set; }
+    public long BuffEndTime { get; set; }
 }
 
 /// <summary>Native KDungeonClearInfo used as the value of KUnitInfo's dungeon-clear map.</summary>
