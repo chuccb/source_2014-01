@@ -44,14 +44,12 @@ public sealed class KUnitInfo
     public int StraightVictories { get; set; }
 
     public KStat Stat { get; } = new();
-    public KGameStat GameStat { get; } = new();
+    public KStat GameStat { get; } = new();
 
     public KLastPositionInfo LastPosition { get; } = new();
     public int LegacyMapId { get; set; }
     public byte LegacyLastTouchLineIndex { get; set; }
     public ushort LegacyLastPosValue { get; set; }
-
-    public List<KBuffInfo> BuffInfo { get; } = [];
 
     public int Win { get; set; }
     public int Lose { get; set; }
