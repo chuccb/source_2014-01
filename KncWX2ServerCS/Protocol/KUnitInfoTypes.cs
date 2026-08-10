@@ -29,38 +29,6 @@ public sealed class KStat
     };
 }
 
-/// <summary>
-/// Native KGameStat has the same five serialized fields and order as KStat.
-/// It remains a distinct model because the native protocol has a distinct type.
-/// </summary>
-public sealed class KGameStat
-{
-    public int BaseHp { get; set; }
-    public int AtkPhysic { get; set; }
-    public int AtkMagic { get; set; }
-    public int DefPhysic { get; set; }
-    public int DefMagic { get; set; }
-
-    public void Add(KGameStat other)
-    {
-        ArgumentNullException.ThrowIfNull(other);
-        BaseHp += other.BaseHp;
-        AtkPhysic += other.AtkPhysic;
-        AtkMagic += other.AtkMagic;
-        DefPhysic += other.DefPhysic;
-        DefMagic += other.DefMagic;
-    }
-
-    public KGameStat Scale(float factor) => new()
-    {
-        BaseHp = (int)(BaseHp * factor),
-        AtkPhysic = (int)(AtkPhysic * factor),
-        AtkMagic = (int)(AtkMagic * factor),
-        DefPhysic = (int)(DefPhysic * factor),
-        DefMagic = (int)(DefMagic * factor),
-    };
-}
-
 /// <summary>Native KSkillData: short skill id followed by one-byte skill level.</summary>
 public sealed class KSkillData
 {
