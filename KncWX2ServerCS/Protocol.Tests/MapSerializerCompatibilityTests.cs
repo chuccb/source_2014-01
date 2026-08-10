@@ -7,6 +7,7 @@ static class MapSerializerCompatibilityTests
         WritesNativeMapLayoutWithTags();
         WritesNativeMapLayoutWithoutTags();
         ReadsNativeMapLayout();
+        KUnitInfoSerializerCompatibilityTests.Run();
     }
 
     private static void WritesNativeMapLayoutWithTags()
@@ -21,12 +22,12 @@ static class MapSerializerCompatibilityTests
 
         byte[] expected =
         [
-            22, // SerializeTag.Map
+            22,
             0, 0, 0, 2,
-            16, // SerializeTag.Pair
+            16,
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
-            16, // SerializeTag.Pair
+            16,
             5, 0, 0, 0, 10,
             5, 0, 0, 0, 20,
         ];
@@ -60,12 +61,12 @@ static class MapSerializerCompatibilityTests
     {
         byte[] data =
         [
-            22, // SerializeTag.Map
+            22,
             0, 0, 0, 2,
-            16, // SerializeTag.Pair
+            16,
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
-            16, // SerializeTag.Pair
+            16,
             5, 0, 0, 0, 10,
             5, 0, 0, 0, 20,
         ];
