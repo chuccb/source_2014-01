@@ -1,10 +1,6 @@
 namespace KncWX2Server.Protocol;
 
-/// <summary>
-/// C# representation of native KUnitInfo.
-/// The property order mirrors CommonPacket.h/CommonPacket.cpp; conditional native
-/// fields are represented explicitly so the serializer can select the active wire shape.
-/// </summary>
+/// <summary>C# representation of native KUnitInfo.</summary>
 public sealed class KUnitInfo
 {
     public long OwnerUserUid { get; set; }
@@ -47,6 +43,7 @@ public sealed class KUnitInfo
     public KStat GameStat { get; } = new();
 
     public KLastPositionInfo LastPosition { get; } = new();
+    public List<KRecordBuffInfo> BuffInfo { get; } = [];
     public int LegacyMapId { get; set; }
     public byte LegacyLastTouchLineIndex { get; set; }
     public ushort LegacyLastPosValue { get; set; }
