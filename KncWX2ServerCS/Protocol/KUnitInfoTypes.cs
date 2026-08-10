@@ -52,8 +52,14 @@ public sealed class KUnitSkillData
     public List<KSkillData> GuildPassiveSkill { get; } = [];
     public List<int> SkillNote { get; } = [];
 
-    private static KSkillData[] CreateSkillSlots() =>
-        [new(), new(), new(), new()];
+    private static KSkillData[] CreateSkillSlots() => [new(), new(), new(), new()];
+}
+
+/// <summary>Native KRecordBuffInfo used by the reform-the-gate-of-darkness buff vector.</summary>
+public sealed class KRecordBuffInfo
+{
+    public int BuffId { get; set; }
+    public string StartTime { get; set; } = string.Empty;
 }
 
 /// <summary>Native KDungeonClearInfo used as the value of KUnitInfo's dungeon-clear map.</summary>
