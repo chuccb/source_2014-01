@@ -4,20 +4,17 @@ static class MapSerializerCompatibilityTests
 {
     public static void Run()
     {
-        WritesNativeMapLayout();
+        WritesNativeMapLayoutWithTags();
+        WritesNativeMapLayoutWithoutTags();
         ReadsNativeMapLayout();
     }
 
-    private static void WritesNativeMapLayout()
+    private static void WritesNativeMapLayoutWithTags()
     {
-        var values = new SortedDictionary<int, int>
-        {
-            [10] = 20,
-            [1] = 2,
-        };
-
+        var values = CreateValues();
         var buffer = new KSerBuffer();
         var serializer = new KSerializer();
+
         serializer.BeginWriting(buffer, tagging: true);
         Assert(serializer.PutMap(values, static (s, value) => s.Put(value), static (s, value) => s.Put(value)));
         serializer.EndWriting();
@@ -32,6 +29,28 @@ static class MapSerializerCompatibilityTests
             16, // SerializeTag.Pair
             5, 0, 0, 0, 10,
             5, 0, 0, 0, 20,
+        ];
+
+        Assert(buffer.Data.Span.SequenceEqual(expected));
+    }
+
+    private static void WritesNativeMapLayoutWithoutTags()
+    {
+        var values = CreateValues();
+        var buffer = new KSerBuffer();
+        var serializer = new KSerializer();
+
+        serializer.BeginWriting(buffer);
+        Assert(serializer.PutMap(values, static (s, value) => s.Put(value), static (s, value) => s.Put(value)));
+        serializer.EndWriting();
+
+        byte[] expected =
+        [
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            0, 0, 0, 2,
+            0, 0, 0, 10,
+            0, 0, 0, 20,
         ];
 
         Assert(buffer.Data.Span.SequenceEqual(expected));
@@ -69,6 +88,13 @@ static class MapSerializerCompatibilityTests
         Assert(values[1] == 2);
         Assert(values[10] == 20);
     }
+
+    private static SortedDictionary<int, int> CreateValues() =>
+        new()
+        {
+            [10] = 20,
+            [1] = 2,
+        };
 
     private static (bool Ok, int Value) ReadInt(KSerializer serializer) =>
         serializer.Get(out int value) ? (true, value) : (false, default);
