@@ -16,6 +16,7 @@ static class Program
         TestEventSerialization();
         TestEventFromTypeIsNotSerialized();
         MapSerializerCompatibilityTests.Run();
+        KUnitInfoItemSerializerCompatibilityTests.Run();
 
         Console.WriteLine("KncWX2Server protocol compatibility vectors: PASS");
     }
