@@ -357,25 +357,24 @@ public static class KUnitInfoSerializer
         value.Period = period;
         value.ExpirationDate = expirationDate;
 
-        if (options.NewItemSystem201305
-            && (!GetSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
-                || !serializer.Get(out sbyte itemState)))
-        {
-            return false;
-        }
-
         if (options.NewItemSystem201305)
         {
-            value.ItemState = itemState;
-        }
+            if (!GetSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
+                || !serializer.Get(out sbyte itemState))
+            {
+                return false;
+            }
 
-        if (options.GoldTicket && !serializer.Get(out long goldTicketKeyUid))
-        {
-            return false;
+            value.ItemState = itemState;
         }
 
         if (options.GoldTicket)
         {
+            if (!serializer.Get(out long goldTicketKeyUid))
+            {
+                return false;
+            }
+
             value.GoldTicketKeyUid = goldTicketKeyUid;
         }
 
@@ -562,7 +561,7 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        if (!serializer.GetMap(value.EquippedItem, static s => ReadLong(s), s => ReadInventoryItem(s, options))
+        if (!serializer.GetMap(value.EquippedItem, static s => ReadInt(s), s => ReadInventoryItem(s, options))
             || !serializer.Get(value.UnitSkillData, options)
             || !serializer.Get(out bool isParty)
             || !serializer.Get(out int spiritMax)
@@ -577,13 +576,13 @@ public static class KUnitInfoSerializer
         value.Spirit = spirit;
         value.IsGameBang = isGameBang;
 
-        if (options.PcBangType && !serializer.Get(out int pcBangType))
-        {
-            return false;
-        }
-
         if (options.PcBangType)
         {
+            if (!serializer.Get(out int pcBangType))
+            {
+                return false;
+            }
+
             value.PcBangType = pcBangType;
         }
 
@@ -596,12 +595,13 @@ public static class KUnitInfoSerializer
 
             value.TitleId = titleId;
         }
-        else if (!serializer.Get(out short legacyTitleId))
-        {
-            return false;
-        }
         else
         {
+            if (!serializer.Get(out short legacyTitleId))
+            {
+                return false;
+            }
+
             value.LegacyTitleId = legacyTitleId;
         }
 
@@ -831,25 +831,24 @@ public static class KUnitInfoSerializer
             value.RestoreAvailableDate = restoreAvailableDate;
         }
 
-        if (options.AddWarpButton && !serializer.Get(out long warpVipEndDate))
-        {
-            return false;
-        }
-
         if (options.AddWarpButton)
         {
-            value.WarpVipEndDate = warpVipEndDate;
-        }
+            if (!serializer.Get(out long warpVipEndDate))
+            {
+                return false;
+            }
 
-        if (options.GrowUpSocket
-            && (!serializer.Get(out int eventQuestClearCount)
-                || !serializer.Get(out int exchangeCount)))
-        {
-            return false;
+            value.WarpVipEndDate = warpVipEndDate;
         }
 
         if (options.GrowUpSocket)
         {
+            if (!serializer.Get(out int eventQuestClearCount)
+                || !serializer.Get(out int exchangeCount))
+            {
+                return false;
+            }
+
             value.EventQuestClearCount = eventQuestClearCount;
             value.ExchangeCount = exchangeCount;
         }
@@ -872,26 +871,24 @@ public static class KUnitInfoSerializer
             }
         }
 
-        if (options.RecruitEventQuestForNewUser
-            && !serializer.Get(out bool recruit))
-        {
-            return false;
-        }
-
         if (options.RecruitEventQuestForNewUser)
         {
-            value.Recruit = recruit;
-        }
+            if (!serializer.Get(out bool recruit))
+            {
+                return false;
+            }
 
-        if (options.NewYearEvent2014
-            && (!serializer.Get(out byte oldYearMissionRewardedLevel)
-                || !serializer.Get(out int newYearMissionStepId)))
-        {
-            return false;
+            value.Recruit = recruit;
         }
 
         if (options.NewYearEvent2014)
         {
+            if (!serializer.Get(out byte oldYearMissionRewardedLevel)
+                || !serializer.Get(out int newYearMissionStepId))
+            {
+                return false;
+            }
+
             value.OldYearMissionRewardedLevel = oldYearMissionRewardedLevel;
             value.NewYearMissionStepId = newYearMissionStepId;
         }
