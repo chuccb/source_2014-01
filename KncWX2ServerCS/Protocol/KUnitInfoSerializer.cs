@@ -84,7 +84,6 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        // Native order is all EquippedSkill entries, then all SlotB entries.
         foreach (var skill in value.EquippedSkill)
         {
             if (!serializer.Put(skill))
@@ -312,16 +311,20 @@ public static class KUnitInfoSerializer
             || !serializer.Put(value.SealData)
             || !serializer.Put(value.EnchantLevel)
             || !serializer.Put(value.AttributeEnchantInfo)
-            || !PutSocketVector(serializer, value.ItemSocket, options.ItemOptionDataSize)
-            || !serializer.Put(value.Period)
-            || !serializer.PutW(value.ExpirationDate))
+            || !PutSocketVector(serializer, value.ItemSocket, options.ItemOptionDataSize))
         {
             return false;
         }
 
+        // Native order: random sockets and item state precede period and expiration date.
         if (options.NewItemSystem201305
             && (!PutSocketVector(serializer, value.RandomSocket, options.ItemOptionDataSize)
                 || !serializer.Put(value.ItemState)))
+        {
+            return false;
+        }
+
+        if (!serializer.Put(value.Period) || !serializer.PutW(value.ExpirationDate))
         {
             return false;
         }
@@ -341,9 +344,7 @@ public static class KUnitInfoSerializer
             || !serializer.Get(out byte sealData)
             || !serializer.Get(out sbyte enchantLevel)
             || !serializer.Get(value.AttributeEnchantInfo)
-            || !GetSocketVector(serializer, value.ItemSocket, options.ItemOptionDataSize)
-            || !serializer.Get(out short period)
-            || !serializer.GetW(out var expirationDate))
+            || !GetSocketVector(serializer, value.ItemSocket, options.ItemOptionDataSize))
         {
             return false;
         }
@@ -354,8 +355,6 @@ public static class KUnitInfoSerializer
         value.Endurance = endurance;
         value.SealData = sealData;
         value.EnchantLevel = enchantLevel;
-        value.Period = period;
-        value.ExpirationDate = expirationDate;
 
         if (options.NewItemSystem201305)
         {
@@ -367,6 +366,14 @@ public static class KUnitInfoSerializer
 
             value.ItemState = itemState;
         }
+
+        if (!serializer.Get(out short period) || !serializer.GetW(out var expirationDate))
+        {
+            return false;
+        }
+
+        value.Period = period;
+        value.ExpirationDate = expirationDate;
 
         if (options.GoldTicket)
         {
@@ -671,11 +678,16 @@ public static class KUnitInfoSerializer
                 return false;
             }
 
-            return !options.PvpSeason2
-                || serializer.Put(value.Rank)
-                && serializer.Put(value.KFactor)
-                && serializer.Put(value.IsRedistributionUser)
-                && serializer.Put(value.PastSeasonWin);
+            if (options.PvpSeason2
+                && (!serializer.Put(value.Rank)
+                    || !serializer.Put(value.KFactor)
+                    || !serializer.Put(value.IsRedistributionUser)
+                    || !serializer.Put(value.PastSeasonWin)))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         return serializer.Put(value.PvpEmblem)
@@ -808,9 +820,14 @@ public static class KUnitInfoSerializer
             return false;
         }
 
-        return !options.NewYearEvent2014
-            || serializer.Put(value.OldYearMissionRewardedLevel)
-            && serializer.Put(value.NewYearMissionStepId);
+        if (options.NewYearEvent2014
+            && (!serializer.Put(value.OldYearMissionRewardedLevel)
+                || !serializer.Put(value.NewYearMissionStepId)))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool GetTrailingFields(KSerializer serializer, KUnitInfo value, KUnitInfoWireOptions options)
@@ -923,12 +940,6 @@ public static class KUnitInfoSerializer
     private static (bool Ok, int Value) ReadInt(KSerializer serializer)
     {
         var ok = serializer.Get(out int value);
-        return (ok, value);
-    }
-
-    private static (bool Ok, long Value) ReadLong(KSerializer serializer)
-    {
-        var ok = serializer.Get(out long value);
         return (ok, value);
     }
 
