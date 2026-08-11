@@ -27,7 +27,7 @@ public sealed class RoomSlot
     public bool IsObserver { get; private set; }
 
     public RoomSlot(int index)=>Index=index;
-    public bool IsOpened=>State is SlotState.Empty or SlotState.Close ? State==SlotState.Empty : false;
+    public bool IsOpened=>State == SlotState.Empty;
     public bool IsOccupied=>UnitUid!=0;
     public void SetState(SlotState state)=>State=state;
     public void SetUnit(long uid)=>UnitUid=uid;
@@ -70,8 +70,6 @@ public class Room
     public bool ToggleSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(s.State==SlotState.Empty?SlotState.Close:SlotState.Empty);return true;}
     public void AssignTeams(int gameMode)
     {
-        // Native CenterServer uses 4 slots per side for team/team-death modes and
-        // the slot index for survival. Other modes default to red.
         foreach(var slot in _slots)
         {
             var team=gameMode switch
@@ -95,6 +93,13 @@ public class Room
 public sealed class BattleFieldRoom : Room
 {
     public uint BattleFieldId { get; private set; }
-    public BattleFieldRoom(long roomUid,string name,int maxSlots,uint battleFieldId=uint.MaxValue):base(roomUid,name,RoomType.BattleField,maxSlots)=>BattleFieldId=battleFieldId;
+    public BattleFieldGameManager GameManager { get; }
+    public BattleFieldRoom(long roomUid,string name,int maxSlots,uint battleFieldId=uint.MaxValue,BattleFieldDangerousConfig? dangerousConfig=null):base(roomUid,name,RoomType.BattleField,maxSlots)
+    {
+        BattleFieldId=battleFieldId;
+        GameManager=new BattleFieldGameManager(dangerousConfig);
+    }
     public void SetBattleFieldId(uint id)=>BattleFieldId=id;
+    public void StartGame()=>GameManager.StartGame();
+    public void EndGame()=>GameManager.EndGame();
 }
