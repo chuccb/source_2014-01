@@ -161,7 +161,7 @@ public sealed class KItemInfo
     public KItemAttributeEnchantInfo AttributeEnchantInfo { get; } = new();
     public List<int> ItemSocket { get; } = [];
     public List<int> RandomSocket { get; } = [];
-    public sbyte ItemState { get; set; }
+    public sbyte ItemState { get; set; } = 0;
     public short Period { get; set; }
     public string ExpirationDate { get; set; } = string.Empty;
     public long GoldTicketKeyUid { get; set; }
