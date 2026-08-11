@@ -103,12 +103,13 @@ internal static class BattleFieldDangerousCompatibilityTests
 
         manager.IncreaseDangerousValue(60);
         manager.OnNpcUnitDie(
-            2,
-            false,
-            (char)0,
-            (char)0,
-            static (_, _, _) => 1,
-            static rate => Math.Abs(rate - 0.40f) < 0.0001f);
+            playerCount: 2,
+            isAttribNpc: false,
+            difficultyLevel: (char)0,
+            monsterGrade: (char)0,
+            monsterTypeFactor: static (_, _, _) => 1,
+            lotteryDecision: static rate => rate >= 0.40f,
+            enableMiddleBoss: true);
 
         Assert(manager.DangerousEvent.IsEventReserved(DangerousEvent.MiddleBossMonsterDrop));
         Assert(manager.DangerousEvent.IsEventReserved(DangerousEvent.BossMonsterDrop));
