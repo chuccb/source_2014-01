@@ -8,13 +8,17 @@ public sealed class BattleFieldRoomManager
 
     public int Count { get { lock (_gate) return _rooms.Count; } }
 
-    public BattleFieldRoom Create(string name, int maxSlots, uint battleFieldId = uint.MaxValue)
+    public BattleFieldRoom Create(
+        string name,
+        int maxSlots,
+        uint battleFieldId = uint.MaxValue,
+        BattleFieldDangerousConfig? dangerousConfig = null)
     {
         if (maxSlots <= 0) throw new ArgumentOutOfRangeException(nameof(maxSlots));
         lock (_gate)
         {
             var uid = _nextRoomUid++;
-            var room = new BattleFieldRoom(uid, name, maxSlots, battleFieldId);
+            var room = new BattleFieldRoom(uid, name, maxSlots, battleFieldId, dangerousConfig);
             room.SetState(RoomState.Wait);
             _rooms.Add(uid, room);
             return room;
