@@ -39,22 +39,7 @@ public sealed class KLottery
         if (_totalProbability + probability > ProbabilityLimit)
             return false;
 
-        if (_cases.TryGetValue(caseId, out var existing))
-        {
-            _cases[caseId] = existing with
-            {
-                Probability = existing.Probability + probability,
-                Param1 = param1,
-                Param2 = param2,
-            };
-        }
-        else
-        {
-            _cases.Add(caseId, new LotteryCase(probability, param1, param2));
-        }
-
-        _totalProbability += probability;
-        return true;
+        return AddCaseUnchecked(caseId, probability, param1, param2);
     }
 
     public bool AddCaseIntegerCast(
@@ -128,12 +113,18 @@ public sealed class KLottery
         return true;
     }
 
+    /// <summary>
+    /// Preserves the native MakeHundredProbabillty() behavior, including its
+    /// historical precondition that refuses to run while total probability is below 100.
+    /// </summary>
     public bool MakeHundredProbability()
     {
-        if (_totalProbability >= 100.0 || _cases.Count == 0)
+        if (_totalProbability < 100.0 || _cases.Count == 0)
             return false;
 
-        return AddProbability((100.0 - _totalProbability) / _cases.Count);
+        var remainingProbability = 100.0 - _totalProbability;
+        _ = remainingProbability / _cases.Count; // preserved native calculation
+        return AddProbability(remainingProbability);
     }
 
     public bool AddMultiProbRate(double rate)
@@ -157,9 +148,8 @@ public sealed class KLottery
 
     public static void Seed(int seed)
     {
-        _seed = seed == 0 ? 1 : Math.Abs(seed % Modulus);
-        if (_seed == 0)
-            _seed = 1;
+        var normalized = seed % Modulus;
+        _seed = normalized == 0 ? 1 : Math.Abs(normalized);
     }
 
     private bool AddCaseUnchecked(int caseId, double probability, int param1, int param2)
