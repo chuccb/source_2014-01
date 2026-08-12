@@ -265,9 +265,9 @@ public sealed class PromotionUnitRepository
         return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<T> RollbackAsync<T>(
+    private static async Task<PromotionUnitResult> RollbackAsync(
         SqliteTransaction transaction,
-        T result,
+        PromotionUnitResult result,
         CancellationToken cancellationToken)
     {
         await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
