@@ -25,7 +25,6 @@ public sealed class RoomSlot
     public bool IsPitIn { get; private set; }
     public bool IsTrade { get; private set; }
     public bool IsObserver { get; private set; }
-
     public RoomSlot(int index)=>Index=index;
     public bool IsOpened=>State == SlotState.Empty;
     public bool IsOccupied=>UnitUid!=0;
@@ -68,19 +67,7 @@ public class Room
     public bool OpenSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(SlotState.Empty);return true;}
     public bool CloseSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(SlotState.Close);return true;}
     public bool ToggleSlot(int index){if(index<0||index>=_slots.Length)return false;var s=_slots[index];if(s.IsOccupied)return false;s.SetState(s.State==SlotState.Empty?SlotState.Close:SlotState.Empty);return true;}
-    public void AssignTeams(int gameMode)
-    {
-        foreach(var slot in _slots)
-        {
-            var team=gameMode switch
-            {
-                0 or 1 => slot.Index/4==0?TeamNum.Red:TeamNum.Blue,
-                2 => slot.Index<=2?(TeamNum)slot.Index:TeamNum.Red,
-                _ => TeamNum.Red
-            };
-            slot.SetTeam(team);
-        }
-    }
+    public void AssignTeams(int gameMode){foreach(var slot in _slots){var team=gameMode switch{0 or 1=>slot.Index/4==0?TeamNum.Red:TeamNum.Blue,2=>slot.Index<=2?(TeamNum)slot.Index:TeamNum.Red,_=>TeamNum.Red};slot.SetTeam(team);}}
     public bool AddUnit(long uid,out int slotIndex){if(uid==0){slotIndex=-1;return false;}if(FindSlot(uid) is not null){slotIndex=-1;return false;}var slot=FindEmptySlot();if(slot is null){slotIndex=-1;return false;}slot.SetUnit(uid);slot.SetState(SlotState.Wait);slotIndex=slot.Index;if(HostUnitUid==0)slot.SetHost(true);return true;}
     public bool RemoveUnit(long uid){var slot=FindSlot(uid);if(slot is null)return false;var wasHost=slot.IsHost;slot.Clear();if(wasHost){var next=_slots.FirstOrDefault(x=>x.UnitUid!=0);if(next is not null)next.SetHost(true);}return true;}
     public bool SetReady(long uid,bool ready){var slot=FindSlot(uid);if(slot is null)return false;slot.SetReady(ready);return true;}
@@ -95,12 +82,16 @@ public sealed class BattleFieldRoom : Room
     public uint BattleFieldId { get; private set; }
     public BattleFieldGameManager GameManager { get; }
     public BattleFieldMonsterManager MonsterManager { get; }
+    public BattleFieldMiddleBossManager MiddleBossManager { get; }
+    public BattleFieldEventMonsterManager EventMonsterManager { get; }
 
     public BattleFieldRoom(long roomUid,string name,int maxSlots,uint battleFieldId=uint.MaxValue,BattleFieldDangerousConfig? dangerousConfig=null):base(roomUid,name,RoomType.BattleField,maxSlots)
     {
         BattleFieldId=battleFieldId;
         GameManager=new BattleFieldGameManager(dangerousConfig);
         MonsterManager=new BattleFieldMonsterManager();
+        MiddleBossManager=new BattleFieldMiddleBossManager();
+        EventMonsterManager=new BattleFieldEventMonsterManager();
     }
 
     public void SetBattleFieldId(uint id)=>BattleFieldId=id;
@@ -109,16 +100,22 @@ public sealed class BattleFieldRoom : Room
     {
         GameManager.StartGame();
         MonsterManager.StartGame(initialMonsters);
+        MiddleBossManager.Clear();
+        EventMonsterManager.Clear();
     }
 
     public void EndGame()
     {
+        EventMonsterManager.Clear();
+        MiddleBossManager.Clear();
         MonsterManager.EndGame();
         GameManager.EndGame();
     }
 
     public void OnCloseRoom()
     {
+        EventMonsterManager.Clear();
+        MiddleBossManager.Clear();
         MonsterManager.OnCloseRoom();
         GameManager.EndGame();
         SetState(RoomState.Closed);
