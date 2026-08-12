@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(IntermediateOutputPath)Generated\\EventId.generated.cs" Visible="false" />
+    <Compile Include="$(IntermediateOutputPath)Generated/EventId.generated.cs" Visible="false" />
   </ItemGroup>
 
   <Target Name="GenerateEventIds" BeforeTargets="CoreCompile">
     <MakeDir Directories="$(IntermediateOutputPath)Generated" />
-    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\\..\\EventIdGenerator\\EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)\\..\\..\\KncWX2Server\\Common\\EventID_Client.h&quot; &quot;$(IntermediateOutputPath)Generated\\EventId.generated.cs&quot; &quot;$(MSBuildProjectDirectory)\\..\\..\\KncWX2Server\\Common\\OnlyGlobal\\EventID_Client_global.h&quot;" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(IntermediateOutputPath)Generated/EventId.generated.cs&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot;" />
   </Target>
 </Project>
