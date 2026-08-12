@@ -10,11 +10,9 @@ public sealed class BadAttitudeManager
         public char Rank { get; internal set; }
     }
 
-    public sealed class BadAttitudeInfo
+    public sealed class BadAttitudeInfo(long unitUid)
     {
-        public BadAttitudeInfo(long unitUid) => UnitUid = unitUid;
-
-        public long UnitUid { get; }
+        public long UnitUid { get; } = unitUid;
         public SubStageRankInfo RankInfo { get; } = new();
         public int BadAttitudePoint { get; internal set; }
         public int VotePoint { get; internal set; }
@@ -41,7 +39,7 @@ public sealed class BadAttitudeManager
         int defenceDungeonType = 0)
     {
         _table = table ?? new KBadAttitudeTable();
-        _dungeonTypeResolver = dungeonTypeResolver ?? static dungeonIdAndDiff => dungeonIdAndDiff;
+        _dungeonTypeResolver = dungeonTypeResolver ?? (static dungeonIdAndDiff => dungeonIdAndDiff);
         _isDefenceDungeon = isDefenceDungeon;
         _defenceDungeonType = defenceDungeonType;
     }
