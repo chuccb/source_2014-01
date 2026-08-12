@@ -62,6 +62,7 @@ sb.AppendLine("    {");
 sb.AppendLine($"        {startup} => nameof(ServerEventId.EVENT_X2_STARTUP),");
 for (var i = 0; i < names.Count; i++)
     sb.AppendLine($"        {firstClientId + i} => nameof(ServerEventId.{names[i]}),");
+sb.AppendLine($"        {clientEnd} => nameof(ServerEventId.EGS_CLIENT_EVENT_ID_END),");
 sb.AppendLine("        _ => null,");
 sb.AppendLine("    };");
 sb.AppendLine("}");
