@@ -24,6 +24,7 @@ static class Program
         BattleFieldRoomCompatibilityTests.Run();
         BattleFieldMiddleBossCompatibilityTests.Run();
         BattleFieldEventMonsterCompatibilityTests.Run();
+        BattleFieldRoomStateMachineCompatibilityTests.Run();
 
         Console.WriteLine("KncWX2Server protocol compatibility vectors: PASS");
     }
