@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using KncWX2Server.Runtime.Center;
 
 internal static class BadAttitudeCompatibilityTests
@@ -102,11 +103,13 @@ internal static class BadAttitudeCompatibilityTests
         Assert(table.GetForceExitPoint(999) == 1000);
     }
 
-    private static void Assert(bool condition)
+    private static void Assert(
+        bool condition,
+        [CallerArgumentExpression(nameof(condition))] string? expression = null)
     {
         if (!condition)
         {
-            throw new InvalidOperationException("BadAttitudeManager compatibility assertion failed");
+            throw new InvalidOperationException($"BadAttitudeManager compatibility assertion failed: {expression}");
         }
     }
 }
