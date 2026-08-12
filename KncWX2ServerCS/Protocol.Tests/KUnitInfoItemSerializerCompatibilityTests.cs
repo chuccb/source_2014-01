@@ -50,7 +50,7 @@ static class KUnitInfoItemSerializerCompatibilityTests
         var sockets = new List<int>();
         var randomSockets = new List<int>();
         Assert(serializer.GetVector(sockets, static s => ReadShort(s)));
-        Assert(serializer.GetVector(randomSockets, static s => ReadInt(s)));
+        Assert(serializer.GetVector(randomSockets, static s => ReadShort(s)));
         Assert(sockets.SequenceEqual([13]));
         Assert(randomSockets.SequenceEqual([14]));
 
