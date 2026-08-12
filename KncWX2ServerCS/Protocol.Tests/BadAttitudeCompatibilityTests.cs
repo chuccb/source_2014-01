@@ -67,7 +67,10 @@ internal static class BadAttitudeCompatibilityTests
         manager.Init([10, 20], 0);
         manager.IncreaseSubStageMonsterDieCount(1, 2, (char)5);
 
-        Assert(!manager.IsAllUnitGetScore());
+        // Native semantics: all members begin at (-1,-1), so IsAllUnitGetScore() is true
+        // until one member receives a different stage/sub-stage.
+        Assert(manager.IsAllUnitGetScore());
+
         var updated = manager.SetUnitSubStageInfo(
             10, 1, 2, 99, 2, 0, 0,
             static (_, _, _, monster) => monster > 0 ? 'F' : 'A',
