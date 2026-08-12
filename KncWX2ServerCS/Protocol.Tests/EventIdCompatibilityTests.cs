@@ -14,13 +14,16 @@ internal static class EventIdCompatibilityTests
 
     private static void VerifySystemValues()
     {
-        var expected = Enum.GetValues<SystemEventId>();
+        var expected = Enum.GetValues<SystemEventId>()
+            .Where(id => id != SystemEventId.E_SYSTEM_EVENT_ID_END)
+            .ToArray();
+
         for (var index = 0; index < expected.Length; index++)
         {
             var id = expected[index];
             var eventId = new EventId((ushort)id);
 
-            AssertEqual(index, (ushort)id);
+            AssertEqual((ushort)index, (ushort)id);
             AssertEqual(id, eventId.TryGetSystemId());
             AssertEqual(id.ToString(), eventId.ToString());
         }
