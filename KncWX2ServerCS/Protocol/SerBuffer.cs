@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 
 namespace KncWX2Server.Protocol;
 
@@ -13,7 +14,7 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
     public int Length => _buffer.Count;
     public int ReadLength => _buffer.Count - _readOffset;
     public bool IsCompressed => _compressed;
-    public ReadOnlyMemory<byte> Data => [.. _buffer];
+    public ReadOnlyMemory<byte> Data => _buffer.ToArray();
     public ReadOnlyCollection<byte> Buffer => _buffer.AsReadOnly();
 
     public bool Write(ReadOnlySpan<byte> data)
@@ -27,7 +28,7 @@ public sealed class KSerBuffer : IEquatable<KSerBuffer>
     {
         if (destination.IsEmpty) throw new ArgumentException("Native KSerBuffer::Read requires len > 0.", nameof(destination));
         if (destination.Length > ReadLength) return false;
-        _buffer.AsSpan(_readOffset, destination.Length).CopyTo(destination);
+        CollectionsMarshal.AsSpan(_buffer).Slice(_readOffset, destination.Length).CopyTo(destination);
         _readOffset += destination.Length;
         return true;
     }
