@@ -135,7 +135,7 @@ public sealed class BattleFieldGameManager
         if (beforeDangerousValue < _config.DangerousValueWarning &&
             DangerousValue >= _config.DangerousValueWarning)
         {
-            _dangerousEvent.ReserveEvent(DangerousEvent.WarningMessage);
+            _dangerousEvent.ReserveEvent(global::KncWX2Server.Runtime.BattleField.DangerousEvent.WarningMessage);
         }
     }
 
@@ -156,7 +156,7 @@ public sealed class BattleFieldGameManager
 
         if (lotteryDecision(0.20f))
         {
-            _dangerousEvent.ReserveEvent(DangerousEvent.EliteMonsterDrop);
+            _dangerousEvent.ReserveEvent(global::KncWX2Server.Runtime.BattleField.DangerousEvent.EliteMonsterDrop);
         }
     }
 
@@ -164,7 +164,7 @@ public sealed class BattleFieldGameManager
     {
         if (playerCount < _config.BossCheckUserCount ||
             DangerousValue < _config.DangerousValueWarning ||
-            _dangerousEvent.IsEventReserved(DangerousEvent.MiddleBossMonsterDrop))
+            _dangerousEvent.IsEventReserved(global::KncWX2Server.Runtime.BattleField.DangerousEvent.MiddleBossMonsterDrop))
         {
             return;
         }
@@ -172,7 +172,7 @@ public sealed class BattleFieldGameManager
         var rate = _config.MiddleBossMonsterDropRate?.Invoke(DangerousValue, OldDangerousValue) ?? 0.0f;
         if (lotteryDecision(rate))
         {
-            _dangerousEvent.ReserveEvent(DangerousEvent.MiddleBossMonsterDrop);
+            _dangerousEvent.ReserveEvent(global::KncWX2Server.Runtime.BattleField.DangerousEvent.MiddleBossMonsterDrop);
         }
     }
 
@@ -180,7 +180,7 @@ public sealed class BattleFieldGameManager
     {
         if (playerCount < _config.BossCheckUserCount ||
             DangerousValue < _config.DangerousValueWarning ||
-            _dangerousEvent.IsEventReserved(DangerousEvent.BossMonsterDrop))
+            _dangerousEvent.IsEventReserved(global::KncWX2Server.Runtime.BattleField.DangerousEvent.BossMonsterDrop))
         {
             return;
         }
@@ -188,7 +188,7 @@ public sealed class BattleFieldGameManager
         var rate = _config.BossMonsterDropRate?.Invoke(DangerousValue, OldDangerousValue) ?? 0.0f;
         if (lotteryDecision(rate))
         {
-            _dangerousEvent.ReserveEvent(DangerousEvent.BossMonsterDrop);
+            _dangerousEvent.ReserveEvent(global::KncWX2Server.Runtime.BattleField.DangerousEvent.BossMonsterDrop);
         }
     }
 }
