@@ -108,7 +108,7 @@ internal static class BattleFieldDangerousCompatibilityTests
             difficultyLevel: (char)0,
             monsterGrade: (char)0,
             monsterTypeFactor: static (_, _, _) => 1,
-            lotteryDecision: static rate => rate >= 0.40f,
+            lotteryDecision: static rate => rate >= 0.30f,
             enableMiddleBoss: true);
 
         Assert(manager.DangerousEvent.IsEventReserved(DangerousEvent.MiddleBossMonsterDrop));
