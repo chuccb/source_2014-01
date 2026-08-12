@@ -44,8 +44,7 @@ public sealed class BattleFieldRoomCatalog
         if (!_roomsByBattleField.TryGetValue(battleFieldId, out var rooms))
             return false;
 
-        var removed = rooms.Remove(roomUid);
-        if (!removed)
+        if (!rooms.Remove(roomUid))
             return false;
 
         _roomOrder[battleFieldId].Remove(roomUid);
@@ -80,11 +79,11 @@ public sealed class BattleFieldRoomCatalog
 
     public bool TrySelectRoom(
         BattleFieldRoomJoinRequest request,
+        out BattleFieldRoom? selectedRoom,
         Func<BattleFieldRoom, int>? partyMemberCount = null,
         Func<BattleFieldRoom, bool>? unitAlreadyJoined = null,
         Func<BattleFieldRoom, int>? reservedUserCount = null,
-        Func<IReadOnlyList<BattleFieldRoom>, BattleFieldRoom?>? randomSelector = null,
-        out BattleFieldRoom? selectedRoom)
+        Func<IReadOnlyList<BattleFieldRoom>, BattleFieldRoom?>? randomSelector = null)
     {
         selectedRoom = null;
         if (request.RequiredSlots <= 0 ||
@@ -103,10 +102,10 @@ public sealed class BattleFieldRoomCatalog
             foreach (var room in orderedRooms)
             {
                 var alreadyJoined = unitAlreadyJoined?.Invoke(room) == true;
-                var joinCount = room.JoinSlotCount;
                 var partyMembers = Math.Max(0, partyMemberCount(room) - (alreadyJoined ? 1 : 0));
+                var availableSlots = room.MaxSlot - (alreadyJoined ? room.JoinSlotCount - 1 : room.JoinSlotCount);
 
-                if (joinCount >= room.MaxSlot - (alreadyJoined ? 1 : 0) || partyMembers <= bestCount)
+                if (availableSlots <= 0 || partyMembers <= bestCount)
                     continue;
 
                 bestCount = partyMembers;
