@@ -192,7 +192,8 @@ static class Program
         serializer.BeginWriting(tagged, tagging: true);
         Assert(serializer.Put("A"));
         serializer.EndWriting();
-        Assert(tagged.Data.Span.SequenceEqual([12, 0, 0, 0, 1, 65]));
+        // String tag, DWORD length tag, DWORD length, UTF-8 bytes.
+        Assert(tagged.Data.Span.SequenceEqual([12, 6, 0, 0, 0, 1, 65]));
     }
 
     private static void TestPerformerInfo()
