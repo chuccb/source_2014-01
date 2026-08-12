@@ -21,7 +21,7 @@ public readonly record struct EventId(ushort Value)
         => GeneratedEventIdNames.Get(Value)
            ?? EventIdNames.GetSystem(Value);
 
-    /// <summary>Preserves native KEvent::GetIDStr behavior: IDs at or above the system boundary resolve to the first client-table name.</summary>
+    /// <summary>Preserves native KEvent::GetIDStr behavior: IDs at or above the system boundary resolve to E_SYSTEM_EVENT_ID_END.</summary>
     public string ToLegacyName() => EventIdNames.GetLegacy(Value);
 }
 
@@ -85,6 +85,6 @@ internal static class EventIdNames
 
     public static string GetLegacy(ushort value) =>
         value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
-            ? GeneratedEventIdNames.Get(21) ?? $"UNKNOWN_EVENT_ID_{value}"
+            ? SystemNames[(ushort)SystemEventId.E_SYSTEM_EVENT_ID_END]
             : SystemNames[value];
 }
