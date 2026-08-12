@@ -42,9 +42,9 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         var request = new BattleFieldRoomJoinRequest(10, 100, 0, 900);
         Assert(catalog.TrySelectRoom(
             request,
+            out var selected,
             partyMemberCount: room => room.RoomUid == roomB.RoomUid ? 2 : 1,
-            randomSelector: static rooms => rooms[0],
-            out var selected));
+            randomSelector: static rooms => rooms[0]));
 
         Assert(selected!.RoomUid == roomB.RoomUid);
     }
@@ -61,9 +61,9 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         var request = new BattleFieldRoomJoinRequest(10, 100, 0, 900);
         Assert(catalog.TrySelectRoom(
             request,
+            out var selected,
             partyMemberCount: static _ => 2,
-            randomSelector: static rooms => rooms[^1],
-            out var selected));
+            randomSelector: static rooms => rooms[^1]));
 
         Assert(selected!.RoomUid == first.RoomUid);
     }
@@ -80,8 +80,8 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         var request = new BattleFieldRoomJoinRequest(10, 100, target.RoomUid, 0);
         Assert(catalog.TrySelectRoom(
             request,
-            randomSelector: static rooms => rooms[0],
-            out var selected));
+            out var selected,
+            randomSelector: static rooms => rooms[0]));
         Assert(selected!.RoomUid == target.RoomUid);
     }
 
@@ -97,8 +97,8 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         var request = new BattleFieldRoomJoinRequest(10, 100, 0, 0);
         Assert(catalog.TrySelectRoom(
             request,
-            randomSelector: static rooms => rooms[^1],
-            out var selected));
+            out var selected,
+            randomSelector: static rooms => rooms[^1]));
         Assert(selected!.RoomUid == second.RoomUid);
     }
 
@@ -114,17 +114,17 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         var targetRequest = new BattleFieldRoomJoinRequest(10, 100, reservedRoom.RoomUid, 0, RequiredSlots: 2);
         Assert(catalog.TrySelectRoom(
             targetRequest,
+            out var targetSelected,
             reservedUserCount: room => room.RoomUid == reservedRoom.RoomUid ? 3 : 0,
-            randomSelector: static rooms => rooms[0],
-            out var targetSelected));
+            randomSelector: static rooms => rooms[0]));
         Assert(targetSelected!.RoomUid == availableRoom.RoomUid);
 
         var randomRequest = new BattleFieldRoomJoinRequest(10, 100, 0, 0, RequiredSlots: 2);
         Assert(catalog.TrySelectRoom(
             randomRequest,
+            out var randomSelected,
             reservedUserCount: room => room.RoomUid == reservedRoom.RoomUid ? 3 : 0,
-            randomSelector: static rooms => rooms[0],
-            out var randomSelected));
+            randomSelector: static rooms => rooms[0]));
         Assert(randomSelected!.RoomUid == availableRoom.RoomUid);
     }
 
@@ -152,7 +152,7 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
         catalog.AddRoom(room);
 
         var existingUserRequest = new BattleFieldRoomJoinRequest(10, 100, room.RoomUid, 0, RequiredSlots: 1);
-        Assert(catalog.TrySelectRoom(existingUserRequest, unitAlreadyJoined: static _ => true, out var existingSelected));
+        Assert(catalog.TrySelectRoom(existingUserRequest, out var existingSelected, unitAlreadyJoined: static _ => true));
         Assert(existingSelected!.RoomUid == room.RoomUid);
 
         var newUserRequest = new BattleFieldRoomJoinRequest(10, 200, room.RoomUid, 0, RequiredSlots: 2);
