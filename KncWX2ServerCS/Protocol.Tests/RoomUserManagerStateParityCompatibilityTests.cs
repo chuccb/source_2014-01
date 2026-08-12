@@ -146,7 +146,11 @@ internal static class RoomUserManagerStateParityCompatibilityTests
         Assert(!manager.IsObserver(10));
         Assert(manager.GetUser(20, RoomUserManager.UserListType.Game) is null);
         Assert(manager.GetUser(20, RoomUserManager.UserListType.Observer) is not null);
-        Assert(manager.GetRoomUserGs(20, out var gsUid) && gsUid == 1020);
+
+        // Native KRoomUserManager::GetGSUID() ignores the requested list type and
+        // always resolves against the game-user map.
+        Assert(!manager.GetRoomUserGs(20, out _));
+        Assert(manager.GetRoomUserGs(10, out var gsUid) && gsUid == 1010);
     }
 
     private static void TestKillScoreSnapshot()
