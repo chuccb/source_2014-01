@@ -4,6 +4,10 @@ namespace KncWX2Server.Protocol;
 public readonly record struct EventId(ushort Value)
 {
     public static implicit operator EventId(ushort value) => new(value);
+    public static implicit operator EventId(SystemEventId value) => new((ushort)value);
+    public static implicit operator EventId(ClientEventId value) => new((ushort)value);
+    public static implicit operator EventId(ServerEventId value) => new((ushort)value);
+    public static implicit operator EventId(X2ServerEventId value) => new((ushort)value);
     public static implicit operator ushort(EventId id) => id.Value;
 
     public bool IsSystem => Value < (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
@@ -11,7 +15,8 @@ public readonly record struct EventId(ushort Value)
     public bool IsClient => Value >= GeneratedEventIdRanges.ClientStart && Value < GeneratedEventIdRanges.ClientEnd;
     public bool IsClientBoundary => Value == GeneratedEventIdRanges.ClientEnd;
     public bool IsServer => Value >= GeneratedEventIdRanges.ServerStart && Value < GeneratedEventIdRanges.ServerEnd;
-    public bool IsX2Server => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END && Value <= GeneratedEventIdRanges.ClientEnd;
+    public bool IsServerBoundary => Value == GeneratedEventIdRanges.ServerEnd;
+    public bool IsX2Server => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END && Value < GeneratedEventIdRanges.ClientEnd;
 
     public SystemEventId? TryGetSystemId()
         => Value <= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
@@ -19,13 +24,10 @@ public readonly record struct EventId(ushort Value)
             : null;
 
     public ClientEventId? TryGetClientId()
-        => Value >= (ushort)ClientEventId.E_CLIENT_EVENT_ID_BEGIN &&
-           Value <= (ushort)ClientEventId.EGS_CLIENT_EVENT_ID_END
-            ? (ClientEventId)Value
-            : null;
+        => IsClient ? (ClientEventId)Value : null;
 
     public ServerEventId? TryGetServerId()
-        => IsServer ? (ServerEventId)Value : null;
+        => IsServer || IsServerBoundary ? (ServerEventId)Value : null;
 
     public X2ServerEventId? TryGetX2ServerId()
         => IsX2Server ? (X2ServerEventId)Value : null;
