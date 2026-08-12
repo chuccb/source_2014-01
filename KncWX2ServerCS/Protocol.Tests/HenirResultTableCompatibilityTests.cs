@@ -5,6 +5,7 @@ internal static class HenirResultTableCompatibilityTests
     public static void Run()
     {
         TestRewardDefinitions();
+        TestRewardGroups();
         TestStageFlags();
         TestChallengeRewards();
         TestClear();
@@ -27,6 +28,25 @@ internal static class HenirResultTableCompatibilityTests
         Assert(rewards[0] == new HenirRewardDefinition(10, 3));
         Assert(rewards[1] == new HenirRewardDefinition(11, 2));
         Assert(!table.TryGetRewardDefinitions(9, 2, out _));
+    }
+
+    private static void TestRewardGroups()
+    {
+        var table = new HenirResultTable();
+
+        Assert(!table.AddHenirResultItemGroup(0, 1, 1, 1));
+        Assert(!table.AddHenirResultItemGroup(1, -1, 1, 1));
+        Assert(!table.AddHenirResultItemGroup(1, 1, 0, 1));
+        Assert(!table.AddHenirResultItemGroup(1, 1, 1, 0));
+        Assert(table.AddHenirResultItemGroup(1, 100, 2, 0.25f));
+        Assert(table.AddHenirResultItemGroup(1, 101, 1, 0.75f));
+
+        Assert(table.RewardGroupCount == 1);
+        Assert(table.TryGetRewardGroup(1, out var rewards));
+        Assert(rewards.Count == 2);
+        Assert(rewards[0] == new HenirItemRewardDefinition(100, 2, 0.25f));
+        Assert(rewards[1] == new HenirItemRewardDefinition(101, 1, 0.75f));
+        Assert(!table.TryGetRewardGroup(99, out _));
     }
 
     private static void TestStageFlags()
@@ -73,6 +93,7 @@ internal static class HenirResultTableCompatibilityTests
     {
         var table = new HenirResultTable();
         Assert(table.AddHenirResultItemInfo(1, 1, 10, 1));
+        Assert(table.AddHenirResultItemGroup(10, 100, 1, 1));
         Assert(table.AddResurrectionStage(1));
         Assert(table.AddClearTempInventoryStage(1));
         Assert(table.AddClearNotifyStage(1));
@@ -81,6 +102,7 @@ internal static class HenirResultTableCompatibilityTests
         table.Clear();
 
         Assert(table.RewardTableCount == 0);
+        Assert(table.RewardGroupCount == 0);
         Assert(table.ResurrectionStageCount == 0);
         Assert(table.ClearTempInventoryStageCount == 0);
         Assert(table.ClearNotifyStageCount == 0);
