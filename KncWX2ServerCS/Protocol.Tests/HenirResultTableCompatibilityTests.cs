@@ -1,3 +1,4 @@
+using KncWX2Server.Common;
 using KncWX2Server.Runtime.BattleField;
 
 internal static class HenirResultTableCompatibilityTests
