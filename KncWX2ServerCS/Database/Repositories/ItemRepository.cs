@@ -2,8 +2,6 @@ using Microsoft.Data.Sqlite;
 
 namespace KncWX2Server.Database.Repositories;
 
-public sealed record InsertItemResult(int Code, long ItemUid, DateTime? EndDate);
-
 public sealed class ItemRepository
 {
     private readonly SqliteDatabase _database;
