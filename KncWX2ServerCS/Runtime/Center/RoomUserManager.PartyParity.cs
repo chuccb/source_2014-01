@@ -15,7 +15,7 @@ public static class RoomUserManagerPartyParity
 
     private static IEnumerable<RoomUser> EnumerateGameUsers(RoomUserManager manager)
     {
-        foreach (var unitUid in manager.GetUserList(0, RoomUserManager.UserListType.Game).Values)
+        foreach (var unitUid in EnumerateGameUnitUids(manager))
         {
             var user = manager.GetUser(unitUid);
             if (user is not null) yield return user;
