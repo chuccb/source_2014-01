@@ -198,11 +198,11 @@ static class Program
         Assert(performer.AddUid(20));
         Assert(performer.AddUid(10));
         Assert(performer.FindUid(10));
-        AssertEqual(10, performer.GetFirstUid());
+        AssertEqual(10L, performer.GetFirstUid());
         AssertEqual(2, performer.UidListSize);
 
         var clone = performer.Clone();
-        AssertEqual(123, clone.PerformerId);
+        AssertEqual((uint)123, clone.PerformerId);
         Assert(clone.FindUid(20));
     }
 
@@ -210,13 +210,13 @@ static class Program
     {
         var ev = new KEvent();
         ev.SetData(7, [100, -1], (ushort)SystemEventId.E_HEART_BEAT, [1, 2, 3]);
-        AssertEqual(100, ev.GetFirstSenderUid());
-        AssertEqual(100, ev.GetLastSenderUid());
+        AssertEqual(100L, ev.GetFirstSenderUid());
+        AssertEqual(100L, ev.GetLastSenderUid());
 
         ev.PushTrace(200);
-        AssertEqual(200, ev.GetLastSenderUid());
+        AssertEqual(200L, ev.GetLastSenderUid());
         ev.PopTrace();
-        AssertEqual(100, ev.GetLastSenderUid());
+        AssertEqual(100L, ev.GetLastSenderUid());
         Assert(ev.GetIdString() == "E_HEART_BEAT");
 
         var clone = ev.Clone();
