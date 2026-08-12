@@ -16,6 +16,7 @@ public readonly record struct BattleFieldRoomJoinRequest(
 public sealed class BattleFieldRoomCatalog
 {
     private readonly Dictionary<uint, Dictionary<long, BattleFieldRoom>> _roomsByBattleField = [];
+    private readonly Dictionary<uint, List<long>> _roomOrder = [];
 
     public int BattleFieldCount => _roomsByBattleField.Count;
     public int RoomCount => _roomsByBattleField.Values.Sum(static rooms => rooms.Count);
@@ -24,8 +25,18 @@ public sealed class BattleFieldRoomCatalog
     {
         ArgumentNullException.ThrowIfNull(room);
 
-        var rooms = _roomsByBattleField.GetOrAdd(room.BattleFieldId);
-        return rooms.TryAdd(room.RoomUid, room);
+        if (!_roomsByBattleField.TryGetValue(room.BattleFieldId, out var rooms))
+        {
+            rooms = [];
+            _roomsByBattleField.Add(room.BattleFieldId, rooms);
+            _roomOrder.Add(room.BattleFieldId, []);
+        }
+
+        if (!rooms.TryAdd(room.RoomUid, room))
+            return false;
+
+        _roomOrder[room.BattleFieldId].Add(room.RoomUid);
+        return true;
     }
 
     public bool RemoveRoom(uint battleFieldId, long roomUid)
@@ -34,10 +45,17 @@ public sealed class BattleFieldRoomCatalog
             return false;
 
         var removed = rooms.Remove(roomUid);
-        if (rooms.Count == 0)
-            _roomsByBattleField.Remove(battleFieldId);
+        if (!removed)
+            return false;
 
-        return removed;
+        _roomOrder[battleFieldId].Remove(roomUid);
+        if (rooms.Count == 0)
+        {
+            _roomsByBattleField.Remove(battleFieldId);
+            _roomOrder.Remove(battleFieldId);
+        }
+
+        return true;
     }
 
     public bool TryGetRoom(uint battleFieldId, long roomUid, out BattleFieldRoom? room)
@@ -49,56 +67,67 @@ public sealed class BattleFieldRoomCatalog
         return false;
     }
 
-    public IReadOnlyList<BattleFieldRoom> GetRooms(uint battleFieldId) =>
-        _roomsByBattleField.TryGetValue(battleFieldId, out var rooms)
-            ? rooms.Values.OrderBy(static room => room.RoomUid).ToArray()
-            : [];
+    public IReadOnlyList<BattleFieldRoom> GetRooms(uint battleFieldId)
+    {
+        if (!_roomsByBattleField.TryGetValue(battleFieldId, out var rooms) || !_roomOrder.TryGetValue(battleFieldId, out var order))
+            return [];
+
+        return order
+            .Where(rooms.ContainsKey)
+            .Select(uid => rooms[uid])
+            .ToArray();
+    }
 
     public bool TrySelectRoom(
         BattleFieldRoomJoinRequest request,
         Func<BattleFieldRoom, int>? partyMemberCount = null,
         Func<BattleFieldRoom, bool>? unitAlreadyJoined = null,
+        Func<BattleFieldRoom, int>? reservedUserCount = null,
         Func<IReadOnlyList<BattleFieldRoom>, BattleFieldRoom?>? randomSelector = null,
         out BattleFieldRoom? selectedRoom)
     {
         selectedRoom = null;
-        if (request.RequiredSlots <= 0 || !_roomsByBattleField.TryGetValue(request.BattleFieldId, out var rooms))
+        if (request.RequiredSlots <= 0 ||
+            !_roomsByBattleField.TryGetValue(request.BattleFieldId, out var rooms) ||
+            !_roomOrder.TryGetValue(request.BattleFieldId, out var order))
+        {
             return false;
+        }
 
-        // Native order: largest matching-party presence first.
+        var orderedRooms = order.Where(rooms.ContainsKey).Select(uid => rooms[uid]).ToArray();
+
+        // Native order: largest matching-party presence first. Ties retain m_vecList order.
         if (request.PartyUid != 0 && partyMemberCount is not null)
         {
-            var partyRoom = rooms.Values
-                .Where(room => IsJoinable(room, request.RequiredSlots, unitAlreadyJoined?.Invoke(room) == true))
-                .Select(room => new
-                {
-                    Room = room,
-                    PartyMembers = Math.Max(0, partyMemberCount(room) - (unitAlreadyJoined?.Invoke(room) == true ? 1 : 0)),
-                })
-                .Where(static candidate => candidate.PartyMembers > 0)
-                .OrderByDescending(static candidate => candidate.PartyMembers)
-                .ThenBy(static candidate => candidate.Room.RoomUid)
-                .Select(static candidate => candidate.Room)
-                .FirstOrDefault();
-
-            if (partyRoom is not null)
+            var bestCount = 0;
+            foreach (var room in orderedRooms)
             {
-                selectedRoom = partyRoom;
-                return true;
+                var alreadyJoined = unitAlreadyJoined?.Invoke(room) == true;
+                var joinCount = room.JoinSlotCount;
+                var partyMembers = Math.Max(0, partyMemberCount(room) - (alreadyJoined ? 1 : 0));
+
+                if (joinCount >= room.MaxSlot - (alreadyJoined ? 1 : 0) || partyMembers <= bestCount)
+                    continue;
+
+                bestCount = partyMembers;
+                selectedRoom = room;
             }
+
+            if (selectedRoom is not null)
+                return true;
         }
 
         // Native order: try the target room before random selection.
         if (request.TargetRoomUid != 0 && rooms.TryGetValue(request.TargetRoomUid, out var targetRoom) &&
-            IsJoinable(targetRoom, request.RequiredSlots, unitAlreadyJoined?.Invoke(targetRoom) == true))
+            HasReservedAwareCapacity(targetRoom, request.RequiredSlots, unitAlreadyJoined?.Invoke(targetRoom) == true, reservedUserCount))
         {
             selectedRoom = targetRoom;
             return true;
         }
 
-        var candidates = rooms.Values
-            .Where(room => IsJoinable(room, request.RequiredSlots, unitAlreadyJoined?.Invoke(room) == true))
-            .OrderBy(static room => room.RoomUid)
+        // Native fallback: uniformly select among rooms with reserved-aware capacity.
+        var candidates = orderedRooms
+            .Where(room => HasReservedAwareCapacity(room, request.RequiredSlots, unitAlreadyJoined?.Invoke(room) == true, reservedUserCount))
             .ToArray();
 
         if (candidates.Length == 0)
@@ -108,30 +137,26 @@ public sealed class BattleFieldRoomCatalog
         return true;
     }
 
-    private static bool IsJoinable(BattleFieldRoom room, int requiredSlots, bool unitAlreadyJoined)
+    private static bool HasReservedAwareCapacity(
+        BattleFieldRoom room,
+        int requiredSlots,
+        bool unitAlreadyJoined,
+        Func<BattleFieldRoom, int>? reservedUserCount)
     {
         if (room.State != RoomState.Wait)
             return false;
 
-        var freeSlots = room.MaxSlot - room.JoinSlotCount;
-        return freeSlots >= (unitAlreadyJoined ? requiredSlots - 1 : requiredSlots);
+        var reserved = Math.Max(0, reservedUserCount?.Invoke(room) ?? 0);
+        var occupied = room.JoinSlotCount + reserved;
+        if (unitAlreadyJoined)
+            occupied--;
+
+        return room.MaxSlot - occupied >= requiredSlots;
     }
 
-    public void Clear() => _roomsByBattleField.Clear();
-}
-
-file static class BattleFieldRoomCatalogExtensions
-{
-    public static Dictionary<TKey, TValue> GetOrAdd<TKey, TValue>(
-        this Dictionary<TKey, Dictionary<long, TValue>> dictionary,
-        TKey key)
-        where TKey : notnull
+    public void Clear()
     {
-        if (dictionary.TryGetValue(key, out var rooms))
-            return rooms;
-
-        rooms = [];
-        dictionary.Add(key, rooms);
-        return rooms;
+        _roomsByBattleField.Clear();
+        _roomOrder.Clear();
     }
 }
