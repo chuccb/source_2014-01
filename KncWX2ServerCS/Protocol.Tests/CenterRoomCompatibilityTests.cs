@@ -42,7 +42,7 @@ internal static class CenterRoomCompatibilityTests
         Assert(room.Join(user));
         Assert(room.FindByUserUid(10_000 + 0) is null);
         Assert(room.FindByUserUid(user.UserUid) == room.FindByUnitUid(user.UnitUid));
-        Assert(room.Snapshot().Count(info => info.IsOccupied) == 1);
+        Assert(room.Snapshot().Count(info => info.UnitUid != 0) == 1);
         Assert(room.LeaveByUnitUid(user.UnitUid));
         Assert(room.IsEmpty);
     }
