@@ -6,8 +6,10 @@ internal static class HenirResultTableCompatibilityTests
     {
         TestRewardDefinitions();
         TestRewardGroups();
+        TestRewardExecution();
         TestStageFlags();
         TestChallengeRewards();
+        TestChallengeRewardExecution();
         TestClear();
     }
 
@@ -38,17 +40,42 @@ internal static class HenirResultTableCompatibilityTests
         Assert(!table.AddHenirResultItemGroup(1, -1, 1, 1));
         Assert(!table.AddHenirResultItemGroup(1, 1, 0, 1));
         Assert(!table.AddHenirResultItemGroup(1, 1, 1, 0));
-        Assert(table.AddHenirResultItemGroup(1, 100, 2, 0.25f));
-        Assert(table.AddHenirResultItemGroup(1, 101, 1, 0.75f));
-        Assert(!table.AddHenirResultItemGroup(1, 102, 1, 99.01f));
+        Assert(table.AddHenirResultItemGroup(1, 100, 2, 50));
+        Assert(table.AddHenirResultItemGroup(1, 101, 1, 50));
+        Assert(!table.AddHenirResultItemGroup(1, 102, 1, 0.01f));
 
         Assert(table.RewardGroupCount == 1);
         Assert(table.TryGetRewardGroup(1, out var lottery));
         Assert(lottery.CaseCount == 2);
-        Assert(Math.Abs(lottery.TotalProbability - 1.0) < 0.000001);
+        Assert(Math.Abs(lottery.TotalProbability - 100.0) < 0.000001);
         Assert(lottery.GetParam1(100) == 2);
         Assert(lottery.GetParam1(101) == 1);
         Assert(!table.TryGetRewardGroup(99, out _));
+    }
+
+    private static void TestRewardExecution()
+    {
+        var table = new HenirResultTable();
+        Assert(table.AddHenirResultItemInfo(10, 1, 1, 2));
+        Assert(table.AddHenirResultItemGroup(1, 100, 2, 50));
+        Assert(table.AddHenirResultItemGroup(1, 101, 3, 50));
+
+        KLottery.Seed(42);
+        Assert(table.TryRollRewards(
+            10,
+            1,
+            static itemId => itemId switch
+            {
+                100 => new HenirItemMetadata(1, 20),
+                101 => new HenirItemMetadata(2, 30),
+                _ => null,
+            },
+            out var rewards));
+
+        Assert(rewards.Count == 2);
+        Assert(rewards[0] == new HenirRewardItem(100, 2, 1, 20));
+        Assert(rewards[1] == new HenirRewardItem(101, 3, 2, 30));
+        Assert(!table.TryRollRewards(99, 1, static _ => null, out _));
     }
 
     private static void TestStageFlags()
@@ -91,11 +118,33 @@ internal static class HenirResultTableCompatibilityTests
         Assert(rewards[1] == new HenirChallengeReward(101, 4));
     }
 
+    private static void TestChallengeRewardExecution()
+    {
+        var table = new HenirResultTable();
+        Assert(table.AddChallengeReward(4, 100, 2));
+        Assert(table.AddChallengeReward(4, 101, 3));
+
+        Assert(table.TryGetChallengeRewardItems(
+            4,
+            static itemId => itemId switch
+            {
+                100 => new HenirItemMetadata(1, 20),
+                101 => new HenirItemMetadata(2, 30),
+                _ => null,
+            },
+            out var rewards));
+
+        Assert(rewards.Count == 2);
+        Assert(rewards[0] == new HenirRewardItem(100, 2, 1, 20));
+        Assert(rewards[1] == new HenirRewardItem(101, 3, 2, 30));
+        Assert(!table.TryGetChallengeRewardItems(99, static _ => null, out _));
+    }
+
     private static void TestClear()
     {
         var table = new HenirResultTable();
         Assert(table.AddHenirResultItemInfo(1, 1, 10, 1));
-        Assert(table.AddHenirResultItemGroup(10, 100, 1, 1));
+        Assert(table.AddHenirResultItemGroup(10, 100, 1, 100));
         Assert(table.AddResurrectionStage(1));
         Assert(table.AddClearTempInventoryStage(1));
         Assert(table.AddClearNotifyStage(1));
