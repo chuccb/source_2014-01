@@ -8,6 +8,7 @@ internal static class EventIdCompatibilityTests
         VerifyBoundary();
         VerifyUnknownRoundTrip();
         VerifyPerformerLimit();
+        VerifyLegacyLookup();
     }
 
     private static void VerifySystemValues()
@@ -45,6 +46,18 @@ internal static class EventIdCompatibilityTests
         AssertEqual(value, (ushort)eventId);
         AssertEqual(value, new EventId(value).Value);
         AssertEqual("UNKNOWN_EVENT_ID_48879", eventId.ToString());
+    }
+
+    private static void VerifyLegacyLookup()
+    {
+        var unknown = new EventId(ushort.MaxValue);
+        AssertEqual(
+            nameof(SystemEventId.E_SYSTEM_EVENT_ID_END),
+            unknown.ToLegacyName());
+
+        var ev = new KEvent();
+        ev.SetData(0, [1, 2], unknown, ReadOnlySpan<byte>.Empty);
+        AssertEqual(nameof(SystemEventId.E_SYSTEM_EVENT_ID_END), ev.GetIdString());
     }
 
     private static void VerifyPerformerLimit()
