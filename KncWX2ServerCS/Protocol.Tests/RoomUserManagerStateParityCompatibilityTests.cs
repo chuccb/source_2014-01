@@ -5,18 +5,19 @@ internal static class RoomUserManagerStateParityCompatibilityTests
     public static void Run()
     {
         TestIndexAndCidLookup();
+        TestDeleteUserByGsUidCollection();
         TestTeamReadyAndHostState();
         TestStageHpAndDungeonState();
         TestObserverIsolation();
         TestKillScoreSnapshot();
     }
 
-    private static RoomUser CreateUser(long cid, int team = 0)
+    private static RoomUser CreateUser(long cid, int team = 0, long gsUid = 0)
     {
         var user = new RoomUser
         {
             UnitUid = cid,
-            GSUid = cid + 1000,
+            GSUid = gsUid == 0 ? cid + 1000 : gsUid,
             PartyUid = cid + 2000,
         };
         user.SetTeam(team);
@@ -46,6 +47,26 @@ internal static class RoomUserManagerStateParityCompatibilityTests
         Assert(manager.IsHost(300));
     }
 
+    private static void TestDeleteUserByGsUidCollection()
+    {
+        var manager = new RoomUserManager();
+        manager.Init(4);
+        Assert(manager.EnterRoom(CreateUser(30, gsUid: 900)));
+        Assert(manager.EnterRoom(CreateUser(10, gsUid: 900)));
+        Assert(manager.EnterRoom(CreateUser(20, gsUid: 901)));
+
+        var removed = new List<(long UnitUid, long PartyUid)>();
+        var count = manager.DeleteUserByGsUid(900, removed);
+
+        Assert(count == 2);
+        Assert(removed.Count == 2);
+        Assert(removed[0].UnitUid == 10);
+        Assert(removed[1].UnitUid == 30);
+        Assert(manager.GetNumMember() == 3);
+        Assert(manager.GetUser(10) is not null);
+        Assert(manager.GetUser(30) is not null);
+    }
+
     private static void TestTeamReadyAndHostState()
     {
         var manager = new RoomUserManager();
@@ -67,10 +88,10 @@ internal static class RoomUserManagerStateParityCompatibilityTests
         Assert(manager.GetTeamNum(out var redCount, out var blueCount));
         Assert(redCount == 2 && blueCount == 2);
 
-        manager.SetAllReady(true);
+        Assert(manager.SetAllReady(true));
         Assert(manager.GetTeamReadyNum(1) == 2);
         Assert(manager.IsHost(10));
-        Assert(manager.IsPlaying(10) == false);
+        Assert(!manager.IsPlaying(10));
     }
 
     private static void TestStageHpAndDungeonState()
@@ -82,10 +103,10 @@ internal static class RoomUserManagerStateParityCompatibilityTests
         Assert(manager.EnterRoom(one));
         Assert(manager.EnterRoom(two));
 
-        one.StartGame();
-        two.StartGame();
-        one.StartPlay();
-        two.StartPlay();
+        one.SetReady(true);
+        two.SetReady(true);
+        manager.StartGame();
+        manager.StartPlay();
 
         Assert(!manager.IsAllPlayerHpReported());
         one.SetHP(100);
