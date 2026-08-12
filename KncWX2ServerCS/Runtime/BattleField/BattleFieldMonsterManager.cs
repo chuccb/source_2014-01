@@ -17,6 +17,13 @@ public sealed record BattleFieldMonsterInfo(
     long OwnerUnitUid,
     bool IsAttribNpc);
 
+public readonly record struct BattleFieldMonsterDieCounts(
+    int NormalNpc,
+    int LowEliteNpc,
+    int HighEliteNpc,
+    int MiddleBoss,
+    int Boss);
+
 public sealed record BattleFieldMonsterRespawnInfo(
     int MonsterGroupId,
     double RespawnSeconds,
@@ -43,6 +50,13 @@ public sealed class BattleFieldMonsterManager
     public int HighEliteNpcDieCount { get; private set; }
     public int MiddleBossDieCount { get; private set; }
     public int BossDieCount { get; private set; }
+
+    public BattleFieldMonsterDieCounts DieCounts => new(
+        NormalNpcDieCount,
+        LowEliteNpcDieCount,
+        HighEliteNpcDieCount,
+        MiddleBossDieCount,
+        BossDieCount);
 
     public IReadOnlyDictionary<int, BattleFieldMonsterInfo> AliveMonsters => _aliveMonsters;
     public IReadOnlyDictionary<int, BattleFieldMonsterRespawnInfo> RespawnReservations => _respawnReservations;
@@ -81,6 +95,14 @@ public sealed class BattleFieldMonsterManager
 
         return true;
     }
+
+    public bool TryGetMonsterInfo(int npcUid, out BattleFieldMonsterInfo? monster) =>
+        _aliveMonsters.TryGetValue(npcUid, out monster);
+
+    public IReadOnlyList<BattleFieldMonsterInfo> GetAliveMonsterSnapshot() =>
+        _aliveMonsters.Values
+            .OrderBy(static monster => monster.NpcUid)
+            .ToArray();
 
     public bool SetMonsterType(int npcUid, BattleFieldMonsterTypeFactor type)
     {
@@ -186,8 +208,9 @@ public sealed class BattleFieldMonsterManager
     {
         var now = nowUtc ?? DateTimeOffset.UtcNow;
         return _respawnReservations
-            .Where(pair => pair.Value.IsRespawnTimeOver(now))
+            .Where(static pair => pair.Value.IsRespawnTimeOver(pair.Value.ReservedAtUtc + TimeSpan.FromTicks(1)))
             .Select(pair => pair.Key)
+            .Where(uid => _respawnReservations[uid].IsRespawnTimeOver(now))
             .OrderBy(static id => id)
             .ToArray();
     }
