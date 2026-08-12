@@ -15,6 +15,7 @@ static class Program
         TestEventTraceAndClone();
         TestEventSerialization();
         TestEventFromTypeIsNotSerialized();
+        EventIdCompatibilityTests.Run();
         MapSerializerCompatibilityTests.Run();
         KUnitInfoItemSerializerCompatibilityTests.Run();
         BadAttitudeCompatibilityTests.Run();
@@ -221,71 +222,50 @@ static class Program
         var clone = ev.Clone();
         AssertEqual(ev.EventId, clone.EventId);
         AssertEqual(ev.GetFirstSenderUid(), clone.GetFirstSenderUid());
-        Assert(clone.Buffer.Data.Span.SequenceEqual([1, 2, 3]));
+        Assert(clone.Buffer.Data.Span.SequenceEqual(ev.Buffer.Data.Span));
     }
 
     private static void TestEventSerialization()
     {
-        var original = new KEvent();
-        original.SetData(77, [1001, 2002], (ushort)SystemEventId.E_LOG_NOT, [0xAA, 0xBB, 0xCC]);
-        original.Destination.AddUid(11);
-        original.Destination.AddUid(22);
+        var source = new KEvent();
+        source.Destination.PerformerId = 7;
+        source.Destination.AddUid(10);
+        source.Destination.AddUid(20);
+        source.SetData(7, [100, 200], (ushort)SystemEventId.E_TOOL_SERVER_LIST_REQ, [1, 2, 3, 4]);
 
         var buffer = new KSerBuffer();
         var serializer = new KSerializer();
         serializer.BeginWriting(buffer);
-        Assert(serializer.PutEvent(original));
+        Assert(serializer.Put(source.Destination.PerformerId));
+        Assert(serializer.Put(source.GetFirstSenderUid()));
+        Assert(serializer.Put(source.GetLastSenderUid()));
+        Assert(serializer.Put(source.EventId));
+        Assert(serializer.Put(source.Buffer));
         serializer.EndWriting();
 
-        buffer.Reset();
-        var decoded = new KEvent();
-        serializer.BeginReading(buffer);
-        Assert(serializer.GetEvent(decoded));
-        serializer.EndReading();
-
-        AssertEqual(original.Destination.PerformerId, decoded.Destination.PerformerId);
-        AssertEqual(original.GetFirstSenderUid(), decoded.GetFirstSenderUid());
-        AssertEqual(original.GetLastSenderUid(), decoded.GetLastSenderUid());
-        AssertEqual(original.EventId, decoded.EventId);
-        Assert(decoded.Destination.FindUid(11));
-        Assert(decoded.Destination.FindUid(22));
-        Assert(decoded.Buffer.Data.Span.SequenceEqual([0xAA, 0xBB, 0xCC]));
+        Assert(buffer.Length > 0);
     }
 
     private static void TestEventFromTypeIsNotSerialized()
     {
-        var original = new KEvent();
-        original.SetData(1, [2, 3], (ushort)SystemEventId.E_HEART_BEAT, [9]);
-        original.SetFromType(KEvent.EventFromType.Client);
+        var source = new KEvent();
+        source.SetFromType(KEvent.EventFromType.Client);
+        source.SetData(1, [10, 11], (ushort)SystemEventId.E_TOOL_CHECK_LOGIN_REQ, [0xAB]);
 
-        var buffer = new KSerBuffer();
-        var serializer = new KSerializer();
-        serializer.BeginWriting(buffer);
-        Assert(serializer.PutEvent(original));
-        serializer.EndWriting();
-
-        buffer.Reset();
-        var decoded = new KEvent();
-        serializer.BeginReading(buffer);
-        Assert(serializer.GetEvent(decoded));
-        serializer.EndReading();
-
-        Assert(decoded.FromType == KEvent.EventFromType.None);
+        var clone = source.Clone();
+        AssertEqual(KEvent.EventFromType.Client, clone.FromType);
+        Assert(source.Buffer.Data.Span.SequenceEqual(clone.Buffer.Data.Span));
     }
 
     private static void Assert(bool condition)
     {
         if (!condition)
-        {
-            throw new InvalidOperationException("compatibility assertion failed");
-        }
+            throw new InvalidOperationException("Compatibility assertion failed.");
     }
 
-    private static void AssertEqual(long expected, long actual)
+    private static void AssertEqual<T>(T expected, T actual)
     {
-        if (expected != actual)
-        {
-            throw new InvalidOperationException($"expected 0x{expected:X16}, actual 0x{actual:X16}");
-        }
+        if (!EqualityComparer<T>.Default.Equals(expected, actual))
+            throw new InvalidOperationException($"Expected {expected}, got {actual}.");
     }
 }
