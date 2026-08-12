@@ -37,8 +37,10 @@ internal static class KLotteryCompatibilityTests
         Assert(Math.Abs(lottery.Cases[1].Probability - 30) < 0.000001);
         Assert(lottery.DeleteProbability(1));
         Assert(Math.Abs(lottery.TotalProbability - 40) < 0.000001);
-        Assert(lottery.MakeHundredProbability());
-        Assert(Math.Abs(lottery.TotalProbability - 100) < 0.000001);
+
+        // Native MakeHundredProbabillty() currently refuses to run below 100%.
+        Assert(!lottery.MakeHundredProbability());
+        Assert(Math.Abs(lottery.TotalProbability - 40) < 0.000001);
 
         lottery.Clear();
         Assert(lottery.CaseCount == 0);
