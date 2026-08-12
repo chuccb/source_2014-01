@@ -1,3 +1,5 @@
+using KncWX2Server.Common;
+
 namespace KncWX2Server.Runtime.BattleField;
 
 /// <summary>Identifies a Henir reward table entry by stage count and dungeon mode.</summary>
@@ -6,23 +8,20 @@ public readonly record struct HenirRewardKey(int StageCount, byte DungeonMode);
 /// <summary>Describes one reward-group selection attached to a Henir table entry.</summary>
 public readonly record struct HenirRewardDefinition(int GroupId, int RandomCount);
 
-/// <summary>Defines one item entry inside a Henir lottery group.</summary>
-public readonly record struct HenirItemRewardDefinition(int ItemId, int Quantity, float Rate);
-
 /// <summary>Defines one deterministic challenge reward before item metadata is resolved.</summary>
 public readonly record struct HenirChallengeReward(int ItemId, int Quantity);
 
 /// <summary>
 /// Managed counterpart of native KHenirResultTable.
 ///
-/// The native table owns resource/configuration state. Random selection and item
-/// metadata resolution stay outside this type until their native KLottery and XSL
-/// item contracts are ported.
+/// Resource parsing and item metadata resolution stay outside this type. Reward
+/// groups use the shared KLottery implementation so probability semantics remain
+/// identical across the Common and BattleField layers.
 /// </summary>
 public sealed class HenirResultTable
 {
     private readonly Dictionary<HenirRewardKey, List<HenirRewardDefinition>> _rewardDefinitions = [];
-    private readonly Dictionary<int, List<HenirItemRewardDefinition>> _rewardGroups = [];
+    private readonly Dictionary<int, KLottery> _rewardGroups = [];
     private readonly Dictionary<int, List<HenirChallengeReward>> _challengeRewards = [];
     private readonly HashSet<int> _resurrectionStages = [];
     private readonly HashSet<int> _clearTempInventoryStages = [];
@@ -58,9 +57,13 @@ public sealed class HenirResultTable
         if (itemGroupId <= 0 || itemId < 0 || quantity <= 0 || rate <= 0)
             return false;
 
-        var rewards = _rewardGroups.GetOrAdd(itemGroupId);
-        rewards.Add(new HenirItemRewardDefinition(itemId, quantity, rate));
-        return true;
+        if (!_rewardGroups.TryGetValue(itemGroupId, out var lottery))
+        {
+            lottery = new KLottery();
+            _rewardGroups.Add(itemGroupId, lottery);
+        }
+
+        return lottery.AddCase(itemId, rate, quantity);
     }
 
     public bool AddResurrectionStage(int stageCount) =>
@@ -106,19 +109,8 @@ public sealed class HenirResultTable
         return false;
     }
 
-    public bool TryGetRewardGroup(
-        int itemGroupId,
-        out IReadOnlyList<HenirItemRewardDefinition> rewards)
-    {
-        if (_rewardGroups.TryGetValue(itemGroupId, out var found))
-        {
-            rewards = found;
-            return true;
-        }
-
-        rewards = [];
-        return false;
-    }
+    public bool TryGetRewardGroup(int itemGroupId, out KLottery lottery) =>
+        _rewardGroups.TryGetValue(itemGroupId, out lottery!);
 
     public bool TryGetChallengeRewards(
         int stageId,
