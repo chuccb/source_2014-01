@@ -8,5 +8,6 @@ internal static class CompatibilityModuleInitializer
         EventIdCompatibilityTests.Run();
         RoomUserManagerStateParityCompatibilityTests.Run();
         BattleFieldMonsterCompatibilityTests.Run();
+        HenirResultTableCompatibilityTests.Run();
     }
 }
