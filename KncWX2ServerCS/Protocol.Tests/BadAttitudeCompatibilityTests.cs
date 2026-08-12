@@ -9,6 +9,7 @@ internal static class BadAttitudeCompatibilityTests
         TestRemoveUnitVoteCleanup();
         TestStageAndMonsterScore();
         TestDefenceWaveScore();
+        TestDungeonTypeResolution();
         TestDefaultTablePoints();
     }
 
@@ -97,6 +98,35 @@ internal static class BadAttitudeCompatibilityTests
 
         Assert(updated);
         Assert(manager.GetUnitData(10, out var info) && info!.BadAttitudePoint == 1);
+    }
+
+    private static void TestDungeonTypeResolution()
+    {
+        var table = new KBadAttitudeTable();
+        table.AddBadAttitudeCutLinePoint(77, 2);
+        table.AddForceExitPoint(77, 3);
+
+        var manager = new BadAttitudeManager(
+            table,
+            dungeonTypeResolver: static dungeonIdAndDiff => dungeonIdAndDiff + 10,
+            isDefenceDungeon: static dungeonIdAndDiff => dungeonIdAndDiff == 100,
+            defenceDungeonType: 77);
+
+        manager.Init([10], 67);
+        manager.IncreaseBadAttitudeOnePoint(10);
+        manager.IncreaseBadAttitudeOnePoint(10);
+
+        var bad = new List<long>();
+        var forceExit = new List<long>();
+        manager.CheckBadAttitudeUnit(bad, forceExit);
+        Assert(bad.Count == 1 && bad[0] == 10);
+
+        manager.Init([20], 100);
+        manager.IncreaseBadAttitudeOnePoint(20);
+        manager.IncreaseBadAttitudeOnePoint(20);
+        manager.CheckBadAttitudeUnit(bad, forceExit);
+        Assert(bad.Count == 1 && bad[0] == 20);
+        Assert(manager.GetUnitData(20, out var info) && !info!.ForceExit);
     }
 
     private static void TestDefaultTablePoints()
