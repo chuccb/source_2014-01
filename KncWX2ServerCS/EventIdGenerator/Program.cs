@@ -1,14 +1,15 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-const string repoRoot = "..\\..";
-const string clientHeader = "KncWX2Server\\Common\\EventID_Client.h";
-const string globalHeader = "KncWX2Server\\Common\\OnlyGlobal\\EventID_Client_global.h";
-const string outputPath = "eventid.generated.cs";
+if (args.Length < 2)
+{
+    Console.Error.WriteLine("usage: EventIdGenerator <client-header> <output> [global-header]");
+    return 2;
+}
 
-var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, repoRoot));
-var clientPath = Path.Combine(root, clientHeader);
-var globalPath = Path.Combine(root, globalHeader);
+var clientPath = Path.GetFullPath(args[0]);
+var outputPath = Path.GetFullPath(args[1]);
+var globalPath = args.Length >= 3 ? Path.GetFullPath(args[2]) : null;
 
 if (!File.Exists(clientPath))
     throw new FileNotFoundException("Native EventID_Client.h was not found.", clientPath);
@@ -16,16 +17,15 @@ if (!File.Exists(clientPath))
 var names = new List<string>();
 ReadEnumNames(clientPath, names);
 
-if (File.Exists(globalPath))
+if (globalPath is not null && File.Exists(globalPath))
 {
     ReadEnumNames(globalPath, names);
 }
-else
+else if (globalPath is not null)
 {
-    Console.Error.WriteLine($"warning: optional global EventID header is missing: {globalHeader}");
+    Console.Error.WriteLine($"warning: optional global EventID header is missing: {globalPath}");
 }
 
-const int systemEnd = 20;
 const int startup = 20;
 var firstClientId = startup + 1;
 var clientEnd = firstClientId + names.Count;
@@ -53,13 +53,14 @@ sb.AppendLine("        _ => null,");
 sb.AppendLine("    };");
 sb.AppendLine("}");
 
-Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
+Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 File.WriteAllText(outputPath, sb.ToString(), new UTF8Encoding(false));
 Console.WriteLine($"Generated {names.Count} client/global event IDs; startup={startup}, clientStart={firstClientId}, clientEnd={clientEnd}.");
+return 0;
 
 static void ReadEnumNames(string path, List<string> names)
 {
-    var regex = new Regex(@"^[^/]*\\_ENUM\\(\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\)", RegexOptions.Compiled);
+    var regex = new Regex(@"^\s*_ENUM\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", RegexOptions.Compiled);
     foreach (var line in File.ReadLines(path))
     {
         var match = regex.Match(line);
@@ -67,8 +68,6 @@ static void ReadEnumNames(string path, List<string> names)
             continue;
 
         var name = match.Groups[1].Value;
-        if (!name.StartsWith("E", StringComparison.Ordinal))
-            continue;
         if (name is "E_SYSTEM_EVENT_ID_END" or "EGS_CLIENT_EVENT_ID_END")
             continue;
         names.Add(name);
