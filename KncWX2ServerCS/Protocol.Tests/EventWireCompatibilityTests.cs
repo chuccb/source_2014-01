@@ -37,7 +37,7 @@ internal static class EventWireCompatibilityTests
 
     private static void RoundTripServerEvent()
     {
-        var source = CreateEvent(GetFirstServerEventId(), [300, 400], [0x30, 0x40]);
+        var source = CreateEvent((ServerEventId)GeneratedEventIdRanges.ServerStart, [300, 400], [0x30, 0x40]);
         var restored = RoundTrip(source);
 
         AssertEqual(source.Id, restored.Id);
@@ -92,9 +92,6 @@ internal static class EventWireCompatibilityTests
         return value;
     }
 
-    private static ServerEventId GetFirstServerEventId()
-        => (ServerEventId)GeneratedServerEventRange.Start;
-
     private static KEvent RoundTrip(KEvent source)
     {
         var buffer = new KSerBuffer();
@@ -129,9 +126,4 @@ internal static class EventWireCompatibilityTests
         if (!expected.SequenceEqual(actual))
             throw new InvalidOperationException("Expected sequences to be equal.");
     }
-}
-
-internal static class GeneratedServerEventRange
-{
-    public const ushort Start = 1223;
 }
