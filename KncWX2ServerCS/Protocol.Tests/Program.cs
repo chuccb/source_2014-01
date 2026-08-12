@@ -48,7 +48,10 @@ static class Program
         AssertEqual(group, KncUid.ExtractServerGroupId(uid));
         AssertEqual(server, KncUid.ExtractServerId(uid));
         AssertEqual(reserved, KncUid.ExtractReservedId(uid));
-        AssertEqual((reserved << 8) | server, KncUid.ExtractCodeId(uid));
+        // Native ExtractCodeID() returns the two-byte field after shifting
+        // away the pure UID bits: server ID occupies the high byte and
+        // reserved ID occupies the low byte.
+        AssertEqual((server << 8) | reserved, KncUid.ExtractCodeId(uid));
 
         var changed = KncUid.SetServerId(uid, 0x12);
         AssertEqual(pure, KncUid.ExtractPureUid(changed));
@@ -74,7 +77,7 @@ static class Program
         AssertEqual(group, KncUid.ExtractServerGroupId(uid, KncUid.Layout.ExtendedServerGroup));
         AssertEqual(server, KncUid.ExtractServerId(uid, KncUid.Layout.ExtendedServerGroup));
         AssertEqual(reserved, KncUid.ExtractReservedId(uid, KncUid.Layout.ExtendedServerGroup));
-        AssertEqual((reserved << 8) | server, KncUid.ExtractCodeId(uid, KncUid.Layout.ExtendedServerGroup));
+        AssertEqual((server << 8) | reserved, KncUid.ExtractCodeId(uid, KncUid.Layout.ExtendedServerGroup));
     }
 
     private static void TestTempBit()
