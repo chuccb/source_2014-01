@@ -19,7 +19,8 @@ SELECT u.UnitUID,u.UnitClass,u.Exp,u.Level,u.GamePoint,u.VSPoint,u.VSPointMax,u.
 FROM GUnit u JOIN GUnitNickName n ON n.UnitUID=u.UnitUID
 LEFT JOIN GSpirit s ON s.unitUID=u.UnitUID
 LEFT JOIN GRecommend r ON r.NewUID=u.UnitUID
-WHERE u.UnitUID=$unitUid AND u.Deleted=0;""";
+WHERE u.UnitUID=$unitUid AND u.Deleted=0;
+""";
         c.Parameters.AddWithValue("$unitUid",unitUid);
         await using var q=await c.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if(!await q.ReadAsync(ct).ConfigureAwait(false)) return null;
