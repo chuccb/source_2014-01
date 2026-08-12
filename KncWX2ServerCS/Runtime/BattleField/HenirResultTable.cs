@@ -11,6 +11,12 @@ public readonly record struct HenirRewardDefinition(int GroupId, int RandomCount
 /// <summary>Defines one deterministic challenge reward before item metadata is resolved.</summary>
 public readonly record struct HenirChallengeReward(int ItemId, int Quantity);
 
+/// <summary>Metadata copied from the native item template when a reward is materialized.</summary>
+public readonly record struct HenirItemMetadata(byte UsageType, short Endurance);
+
+/// <summary>Materialized Henir reward item, aggregated by item ID.</summary>
+public readonly record struct HenirRewardItem(int ItemId, int Quantity, byte UsageType, short Endurance);
+
 /// <summary>
 /// Managed counterpart of native KHenirResultTable.
 ///
@@ -34,11 +40,7 @@ public sealed class HenirResultTable
     public int ClearNotifyStageCount => _clearNotifyStages.Count;
     public int ChallengeStageCount => _challengeRewards.Count;
 
-    public bool AddHenirResultItemInfo(
-        int stageCount,
-        byte dungeonMode,
-        int itemGroupId,
-        int randomCount)
+    public bool AddHenirResultItemInfo(int stageCount, byte dungeonMode, int itemGroupId, int randomCount)
     {
         if (stageCount <= 0 || itemGroupId <= 0 || randomCount <= 0)
             return false;
@@ -48,11 +50,7 @@ public sealed class HenirResultTable
         return true;
     }
 
-    public bool AddHenirResultItemGroup(
-        int itemGroupId,
-        int itemId,
-        int quantity,
-        float rate)
+    public bool AddHenirResultItemGroup(int itemGroupId, int itemId, int quantity, float rate)
     {
         if (itemGroupId <= 0 || itemId < 0 || quantity <= 0 || rate <= 0)
             return false;
@@ -124,6 +122,98 @@ public sealed class HenirResultTable
 
         rewards = [];
         return false;
+    }
+
+    /// <summary>
+    /// Executes the native GetHenirRewardItem flow using an injected item-template lookup.
+    /// Missing groups, blank lottery results and missing item metadata are skipped like native.
+    /// </summary>
+    public bool TryRollRewards(
+        int stageCount,
+        byte dungeonMode,
+        Func<int, HenirItemMetadata?> itemMetadataResolver,
+        out IReadOnlyList<HenirRewardItem> rewards)
+    {
+        ArgumentNullException.ThrowIfNull(itemMetadataResolver);
+
+        if (!_rewardDefinitions.TryGetValue(new HenirRewardKey(stageCount, dungeonMode), out var definitions))
+        {
+            rewards = [];
+            return false;
+        }
+
+        var aggregated = new Dictionary<int, HenirRewardItem>();
+        foreach (var definition in definitions)
+        {
+            if (!_rewardGroups.TryGetValue(definition.GroupId, out var lottery))
+                continue;
+
+            for (var i = 0; i < definition.RandomCount; i++)
+            {
+                var itemId = lottery.Decision();
+                if (itemId == KLottery.CaseBlank)
+                    continue;
+
+                var quantity = lottery.GetParam1(itemId);
+                if (quantity == KLottery.ParamBlank)
+                    continue;
+
+                var metadata = itemMetadataResolver(itemId);
+                if (metadata is not { } item)
+                    continue;
+
+                if (aggregated.TryGetValue(itemId, out var existing))
+                {
+                    aggregated[itemId] = existing with { Quantity = existing.Quantity + quantity };
+                }
+                else
+                {
+                    aggregated[itemId] = new HenirRewardItem(itemId, quantity, item.UsageType, item.Endurance);
+                }
+            }
+        }
+
+        rewards = aggregated.Values.ToArray();
+        return true;
+    }
+
+    /// <summary>Materializes the native challenge reward list with item metadata.</summary>
+    public bool TryGetChallengeRewardItems(
+        int stageId,
+        Func<int, HenirItemMetadata?> itemMetadataResolver,
+        out IReadOnlyList<HenirRewardItem> rewards)
+    {
+        ArgumentNullException.ThrowIfNull(itemMetadataResolver);
+
+        if (!_challengeRewards.TryGetValue(stageId, out var definitions))
+        {
+            rewards = [];
+            return false;
+        }
+
+        var aggregated = new Dictionary<int, HenirRewardItem>();
+        foreach (var definition in definitions)
+        {
+            var metadata = itemMetadataResolver(definition.ItemId);
+            if (metadata is not { } item)
+                continue;
+
+            if (aggregated.TryGetValue(definition.ItemId, out var existing))
+            {
+                aggregated[definition.ItemId] = existing with { Quantity = existing.Quantity + definition.Quantity };
+            }
+            else
+            {
+                aggregated[definition.ItemId] = new HenirRewardItem(
+                    definition.ItemId,
+                    definition.Quantity,
+                    item.UsageType,
+                    item.Endurance);
+            }
+        }
+
+        rewards = aggregated.Values.ToArray();
+        return true;
     }
 
     public void Clear()
