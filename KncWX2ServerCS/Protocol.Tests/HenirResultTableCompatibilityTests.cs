@@ -40,7 +40,7 @@ internal static class HenirResultTableCompatibilityTests
         Assert(!table.AddHenirResultItemGroup(1, 1, 1, 0));
         Assert(table.AddHenirResultItemGroup(1, 100, 2, 0.25f));
         Assert(table.AddHenirResultItemGroup(1, 101, 1, 0.75f));
-        Assert(!table.AddHenirResultItemGroup(1, 102, 1, 0.01f));
+        Assert(!table.AddHenirResultItemGroup(1, 102, 1, 99.01f));
 
         Assert(table.RewardGroupCount == 1);
         Assert(table.TryGetRewardGroup(1, out var lottery));
