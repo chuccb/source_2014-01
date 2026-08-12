@@ -69,12 +69,13 @@ internal static class RoomUserManagerStateParityCompatibilityTests
 
     private static void TestTeamReadyAndHostState()
     {
+        // Native RoomSlot assigns the first four slots to Red and the next four to Blue.
         var manager = new RoomUserManager();
-        manager.Init(4);
-        var red = CreateUser(10, 0);
-        var blue = CreateUser(20, 1);
-        var red2 = CreateUser(30, 0);
-        var blue2 = CreateUser(40, 1);
+        manager.Init(8);
+        var red = CreateUser(10);
+        var blue = CreateUser(20);
+        var red2 = CreateUser(30);
+        var blue2 = CreateUser(40);
 
         Assert(manager.EnterRoom(red));
         Assert(manager.EnterRoom(blue));
