@@ -9,6 +9,7 @@ internal static class BattleFieldMonsterCompatibilityTests
         TestGroupedMonsterRespawnReservation();
         TestDeathClassification();
         TestAttribAndOwnerState();
+        TestSnapshots();
     }
 
     private static BattleFieldMonsterInfo Monster(int uid, int groupId, long owner = 0, bool attrib = false) =>
@@ -100,6 +101,19 @@ internal static class BattleFieldMonsterCompatibilityTests
         Assert(manager.SetMonsterDie(77, 500, 1, DateTimeOffset.UtcNow));
         Assert(!manager.TryGetNpcOwner(77, out _));
         Assert(manager.GetNpcOwnerListByUnitUid(500).SequenceEqual([78]));
+    }
+
+    private static void TestSnapshots()
+    {
+        var manager = new BattleFieldMonsterManager();
+        manager.StartGame([Monster(30, 3), Monster(10, 1), Monster(20, 2)]);
+
+        Assert(manager.GetAliveMonsterSnapshot().Select(static monster => monster.NpcUid).SequenceEqual([10, 20, 30]));
+        Assert(manager.TryGetMonsterInfo(20, out var monster) && monster!.NpcId == 120);
+
+        manager.IncreaseMonsterDieCount(BattleFieldMonsterTypeFactor.NormalNpc);
+        manager.IncreaseMonsterDieCount(BattleFieldMonsterTypeFactor.BossNpc);
+        Assert(manager.DieCounts == new BattleFieldMonsterDieCounts(1, 0, 0, 0, 1));
     }
 
     private static void Assert(bool condition)
