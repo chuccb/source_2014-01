@@ -16,6 +16,7 @@ static class Program
         TestEventSerialization();
         TestEventFromTypeIsNotSerialized();
         EventIdCompatibilityTests.Run();
+        EventWireCompatibilityTests.Run();
         MapSerializerCompatibilityTests.Run();
         KUnitInfoItemSerializerCompatibilityTests.Run();
         BadAttitudeCompatibilityTests.Run();
@@ -48,9 +49,6 @@ static class Program
         AssertEqual(group, KncUid.ExtractServerGroupId(uid));
         AssertEqual(server, KncUid.ExtractServerId(uid));
         AssertEqual(reserved, KncUid.ExtractReservedId(uid));
-        // Native ExtractCodeID() returns the two-byte field after shifting
-        // away the pure UID bits: server ID occupies the high byte and
-        // reserved ID occupies the low byte.
         AssertEqual((server << 8) | reserved, KncUid.ExtractCodeId(uid));
 
         var changed = KncUid.SetServerId(uid, 0x12);
@@ -192,7 +190,6 @@ static class Program
         serializer.BeginWriting(tagged, tagging: true);
         Assert(serializer.Put("A"));
         serializer.EndWriting();
-        // String tag, DWORD length tag, DWORD length, UTF-8 bytes.
         Assert(tagged.Data.Span.SequenceEqual([12, 6, 0, 0, 0, 1, 65]));
     }
 
