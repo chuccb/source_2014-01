@@ -8,17 +8,24 @@ public readonly record struct EventId(ushort Value)
 
     public bool IsSystem => Value < (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
     public bool IsSystemBoundary => Value == (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
+    public bool IsServer => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
 
     public SystemEventId? TryGetSystemId()
         => IsSystem || IsSystemBoundary ? (SystemEventId)Value : null;
 
-    public override string ToString() => EventIdNames.Get(Value);
+    public ServerEventId? TryGetServerId()
+        => IsServer && Enum.IsDefined((ServerEventId)Value) ? (ServerEventId)Value : null;
 
-    /// <summary>Preserves native KEvent::GetIDStr behavior for IDs outside the known table.</summary>
+    /// <summary>Managed full-event name. ID 20 is EVENT_X2_STARTUP; client IDs follow from 21.</summary>
+    public override string ToString()
+        => GeneratedEventIdNames.Get(Value)
+           ?? EventIdNames.GetSystem(Value);
+
+    /// <summary>Preserves native KEvent::GetIDStr behavior: IDs at or above the system boundary resolve to the first client-table name.</summary>
     public string ToLegacyName() => EventIdNames.GetLegacy(Value);
 }
 
-/// <summary>System event identifiers known by the current native source contract.</summary>
+/// <summary>System event identifiers from the native EventID_System.h contract.</summary>
 public enum SystemEventId : ushort
 {
     E_HEART_BEAT = 0,
@@ -42,7 +49,7 @@ public enum SystemEventId : ushort
     E_CH_CONNECTION_LOST_FOR_DDOS_GUARD_NOT = 18,
     E_GS_CONNECTION_LOST_FOR_DDOS_GUARD_NOT = 19,
 
-    /// <summary>Boundary shared with the native server-event ID space.</summary>
+    /// <summary>System segment boundary. The server-event enum continues at this value.</summary>
     E_SYSTEM_EVENT_ID_END = 20,
 }
 
@@ -73,13 +80,11 @@ internal static class EventIdNames
         nameof(SystemEventId.E_SYSTEM_EVENT_ID_END),
     ];
 
-    public static string Get(ushort value)
-        => value < SystemNames.Length
-            ? SystemNames[value]
-            : $"UNKNOWN_EVENT_ID_{value}";
+    public static string GetSystem(ushort value)
+        => value < SystemNames.Length ? SystemNames[value] : $"UNKNOWN_EVENT_ID_{value}";
 
     public static string GetLegacy(ushort value) =>
         value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
-            ? SystemNames[(ushort)SystemEventId.E_SYSTEM_EVENT_ID_END]
+            ? GeneratedEventIdNames.Get(21) ?? $"UNKNOWN_EVENT_ID_{value}"
             : SystemNames[value];
 }
