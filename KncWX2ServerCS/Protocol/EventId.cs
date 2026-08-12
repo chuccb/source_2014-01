@@ -10,13 +10,19 @@ public readonly record struct EventId(ushort Value)
     public static implicit operator EventId(X2ServerEventId value) => new((ushort)value);
     public static implicit operator ushort(EventId id) => id.Value;
 
+    public static ushort ClientStart => GeneratedEventIdRanges.ClientStart;
+    public static ushort ClientEnd => GeneratedEventIdRanges.ClientEnd;
+    public static ushort ServerBoundary => GeneratedEventIdRanges.ClientEnd;
+    public static ushort ServerStart => GeneratedEventIdRanges.ServerStart;
+    public static ushort ServerEnd => GeneratedEventIdRanges.ServerEnd;
+
     public bool IsSystem => Value < (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
     public bool IsSystemBoundary => Value == (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
-    public bool IsClient => Value >= GeneratedEventIdRanges.ClientStart && Value < GeneratedEventIdRanges.ClientEnd;
-    public bool IsClientBoundary => Value == GeneratedEventIdRanges.ClientEnd;
-    public bool IsServer => Value >= GeneratedEventIdRanges.ServerStart && Value < GeneratedEventIdRanges.ServerEnd;
-    public bool IsServerBoundary => Value == GeneratedEventIdRanges.ServerEnd;
-    public bool IsX2Server => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END && Value < GeneratedEventIdRanges.ClientEnd;
+    public bool IsClient => Value >= ClientStart && Value < ClientEnd;
+    public bool IsClientBoundary => Value == ClientEnd;
+    public bool IsServerBoundary => Value == ServerBoundary;
+    public bool IsServer => Value >= ServerStart && Value < ServerEnd;
+    public bool IsX2Server => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END && Value <= ClientEnd;
 
     public SystemEventId? TryGetSystemId()
         => Value <= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
@@ -27,7 +33,7 @@ public readonly record struct EventId(ushort Value)
         => IsClient ? (ClientEventId)Value : null;
 
     public ServerEventId? TryGetServerId()
-        => IsServer || IsServerBoundary ? (ServerEventId)Value : null;
+        => IsServerBoundary || IsServer ? (ServerEventId)Value : null;
 
     public X2ServerEventId? TryGetX2ServerId()
         => IsX2Server ? (X2ServerEventId)Value : null;
