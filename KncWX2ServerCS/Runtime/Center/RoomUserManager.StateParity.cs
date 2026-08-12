@@ -103,7 +103,7 @@ public static class RoomUserManagerStateParityExtensions
     public static void ResetStageLoaded(this RoomUserManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        foreach (var user in GetAllUsers(manager))
+        foreach (var user in GetUsers(manager, RoomUserManager.UserListType.Game))
         {
             user.SetStageLoaded(false);
         }
@@ -112,7 +112,7 @@ public static class RoomUserManagerStateParityExtensions
     public static void ResetStageId(this RoomUserManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        foreach (var user in GetAllUsers(manager))
+        foreach (var user in GetUsers(manager, RoomUserManager.UserListType.Game))
         {
             user.SetStage(-1);
             user.SetSubStage(-1);
@@ -122,7 +122,7 @@ public static class RoomUserManagerStateParityExtensions
     public static void ResetRebirthPos(this RoomUserManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        foreach (var user in GetAllUsers(manager))
+        foreach (var user in GetUsers(manager, RoomUserManager.UserListType.Game))
         {
             user.SetRebirthPos(0);
         }
@@ -202,8 +202,4 @@ public static class RoomUserManagerStateParityExtensions
             .Where(static slot => slot.User is not null)
             .Select(static slot => slot.User!);
     }
-
-    private static IEnumerable<RoomUser> GetAllUsers(RoomUserManager manager) =>
-        GetUsers(manager, RoomUserManager.UserListType.Game)
-            .Concat(GetUsers(manager, RoomUserManager.UserListType.Observer));
 }
