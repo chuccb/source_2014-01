@@ -79,17 +79,19 @@ public sealed class ServerRuntime : IAsyncDisposable
         try
         {
             using (client)
-            await using var stream = client.GetStream();
-
-            var receiveBuffer = new byte[8192];
-            while (!cancellationToken.IsCancellationRequested)
             {
-                var count = await stream.ReadAsync(receiveBuffer.AsMemory(), cancellationToken).ConfigureAwait(false);
-                if (count == 0)
-                    break;
+                await using var stream = client.GetStream();
+                var receiveBuffer = new byte[8192];
 
-                // Packet framing/authentication/encryption remains intentionally
-                // unimplemented until the native NetLayer packet format is ported.
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var count = await stream.ReadAsync(receiveBuffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    if (count == 0)
+                        break;
+
+                    // Packet framing/authentication/encryption remains intentionally
+                    // unimplemented until the native NetLayer packet format is ported.
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
