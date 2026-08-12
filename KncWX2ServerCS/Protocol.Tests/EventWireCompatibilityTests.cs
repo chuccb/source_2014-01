@@ -37,7 +37,7 @@ internal static class EventWireCompatibilityTests
 
     private static void RoundTripServerEvent()
     {
-        var source = CreateEvent((ServerEventId)GeneratedEventIdRanges.ServerStart, [300, 400], [0x30, 0x40]);
+        var source = CreateEvent((ServerEventId)EventId.ServerStart, [300, 400], [0x30, 0x40]);
         var restored = RoundTrip(source);
 
         AssertEqual(source.Id, restored.Id);
