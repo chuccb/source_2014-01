@@ -7,7 +7,7 @@ internal static class EventWireCompatibilityTests
         RoundTripSystemEvent();
         RoundTripClientEvent();
         PreserveTraceAndPerformerSet();
-        RejectMalformedEventPayload();
+        PreservePayloadBytes();
     }
 
     private static void RoundTripSystemEvent()
@@ -49,7 +49,7 @@ internal static class EventWireCompatibilityTests
         AssertSequenceEqual([10L, 20L, 30L], restored.Destination.UidList);
     }
 
-    private static void RejectMalformedEventPayload()
+    private static void PreservePayloadBytes()
     {
         var source = CreateEvent(SystemEventId.E_HEART_BEAT, [1, 2], [0x01, 0x02]);
         var buffer = new KSerBuffer();
@@ -62,14 +62,13 @@ internal static class EventWireCompatibilityTests
         var bytes = buffer.Data.ToArray();
         bytes[^1] ^= 0xFF;
 
-        var malformed = new KSerBuffer();
-        malformed.Write(bytes);
+        var mutated = new KSerBuffer();
+        mutated.Write(bytes);
         var restored = new KEvent();
-        serializer.BeginReading(malformed, tagging: true);
-        var ok = serializer.GetEvent(restored);
+        serializer.BeginReading(mutated, tagging: true);
+        Assert(serializer.GetEvent(restored));
         serializer.EndReading();
 
-        Assert(ok);
         Assert(!restored.Buffer.Data.Span.SequenceEqual(source.Buffer.Data.Span));
     }
 
