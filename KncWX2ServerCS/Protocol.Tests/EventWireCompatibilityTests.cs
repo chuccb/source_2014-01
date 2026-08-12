@@ -20,7 +20,7 @@ internal static class EventWireCompatibilityTests
         AssertEqual(source.GetLastSenderUid(), restored.GetLastSenderUid());
         AssertEqual(source.Destination.PerformerId, restored.Destination.PerformerId);
         AssertSequenceEqual(source.Destination.UidList, restored.Destination.UidList);
-        AssertSequenceEqual(source.Buffer.Data.Span, restored.Buffer.Data.Span);
+        Assert(source.Buffer.Data.Span.SequenceEqual(restored.Buffer.Data.Span));
         Assert(!restored.Buffer.IsCompressed);
     }
 
