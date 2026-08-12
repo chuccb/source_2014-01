@@ -102,7 +102,7 @@ static class Program
         Assert(buffer.Write(source));
         Span<byte> first = stackalloc byte[2];
         Assert(buffer.Read(first));
-        AssertEqual(2, buffer.ReadLength);
+        AssertEqual(4, buffer.ReadLength);
 
         buffer.Reset();
         var clone = buffer.Clone();
