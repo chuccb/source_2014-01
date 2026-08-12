@@ -40,12 +40,14 @@ internal static class HenirResultTableCompatibilityTests
         Assert(!table.AddHenirResultItemGroup(1, 1, 1, 0));
         Assert(table.AddHenirResultItemGroup(1, 100, 2, 0.25f));
         Assert(table.AddHenirResultItemGroup(1, 101, 1, 0.75f));
+        Assert(!table.AddHenirResultItemGroup(1, 102, 1, 0.01f));
 
         Assert(table.RewardGroupCount == 1);
-        Assert(table.TryGetRewardGroup(1, out var rewards));
-        Assert(rewards.Count == 2);
-        Assert(rewards[0] == new HenirItemRewardDefinition(100, 2, 0.25f));
-        Assert(rewards[1] == new HenirItemRewardDefinition(101, 1, 0.75f));
+        Assert(table.TryGetRewardGroup(1, out var lottery));
+        Assert(lottery.CaseCount == 2);
+        Assert(Math.Abs(lottery.TotalProbability - 1.0) < 0.000001);
+        Assert(lottery.GetParam1(100) == 2);
+        Assert(lottery.GetParam1(101) == 1);
         Assert(!table.TryGetRewardGroup(99, out _));
     }
 
