@@ -23,19 +23,32 @@ public sealed class ServerRuntime : IAsyncDisposable
 
     public async Task StartAsync(IPEndPoint? endpoint, CancellationToken cancellationToken = default)
     {
+        if (endpoint is null)
+            return;
+
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, cancellationToken);
-        if (endpoint is null) return;
         _listener = new TcpListener(endpoint);
         _listener.Start();
+
         while (!linked.IsCancellationRequested)
         {
             TcpClient client;
-            try { client = await _listener.AcceptTcpClientAsync(linked.Token).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (linked.IsCancellationRequested) { break; }
-            catch (ObjectDisposedException) { break; }
-            var id = Interlocked.Increment(ref _nextConnectionId);
-            _clients[id] = client;
-            _ = ProcessClientAsync(id, client, linked.Token);
+            try
+            {
+                client = await _listener.AcceptTcpClientAsync(linked.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+
+            var connectionId = Interlocked.Increment(ref _nextConnectionId);
+            _clients[connectionId] = client;
+            _ = ProcessClientAsync(connectionId, client, linked.Token);
         }
     }
 
@@ -43,34 +56,55 @@ public sealed class ServerRuntime : IAsyncDisposable
     {
         _stop.Cancel();
         _listener?.Stop();
-        foreach (var pair in _clients)
+
+        foreach (var client in _clients.Values)
         {
-            try { pair.Value.Close(); pair.Value.Dispose(); } catch { }
+            try
+            {
+                client.Close();
+                client.Dispose();
+            }
+            catch
+            {
+                // Client cleanup must not prevent the remaining connections from closing.
+            }
         }
+
         _clients.Clear();
         return Task.CompletedTask;
     }
 
-    private async Task ProcessClientAsync(long connectionId, TcpClient client, CancellationToken ct)
+    private async Task ProcessClientAsync(long connectionId, TcpClient client, CancellationToken cancellationToken)
     {
         try
         {
             using (client)
             await using var stream = client.GetStream();
-            var receive = new byte[8192];
-            while (!ct.IsCancellationRequested)
+
+            var receiveBuffer = new byte[8192];
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var count = await stream.ReadAsync(receive.AsMemory(), ct).ConfigureAwait(false);
-                if (count == 0) break;
-                // Framing/authentication/encryption is intentionally not guessed here.
-                // This is the transport boundary; the native NetLayer packet format
-                // must be ported before arbitrary bytes can become KEvent instances.
+                var count = await stream.ReadAsync(receiveBuffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+                if (count == 0)
+                    break;
+
+                // Packet framing/authentication/encryption remains intentionally
+                // unimplemented until the native NetLayer packet format is ported.
             }
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
-        catch (IOException) { }
-        catch (SocketException) { }
-        finally { _clients.TryRemove(connectionId, out _); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (IOException)
+        {
+        }
+        catch (SocketException)
+        {
+        }
+        finally
+        {
+            _clients.TryRemove(connectionId, out _);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -82,22 +116,23 @@ public sealed class ServerRuntime : IAsyncDisposable
 
 public sealed class KEventDispatcher
 {
-    private readonly ConcurrentDictionary<ushort, Func<KEvent, CancellationToken, ValueTask>> _handlers = new();
+    private readonly ConcurrentDictionary<EventId, Func<KEvent, CancellationToken, ValueTask>> _handlers = new();
 
-    public void Register(ushort eventId, Func<KEvent, CancellationToken, ValueTask> handler)
+    public void Register(EventId eventId, Func<KEvent, CancellationToken, ValueTask> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
+
         if (!_handlers.TryAdd(eventId, handler))
             throw new InvalidOperationException($"Event handler already registered: {eventId}.");
     }
 
-    public bool Unregister(ushort eventId) => _handlers.TryRemove(eventId, out _);
+    public bool Unregister(EventId eventId) => _handlers.TryRemove(eventId, out _);
 
-    public ValueTask DispatchAsync(KEvent evt, CancellationToken ct = default)
+    public ValueTask DispatchAsync(KEvent evt, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(evt);
-        return _handlers.TryGetValue(evt.EventId, out var handler)
-            ? handler(evt, ct)
+        return _handlers.TryGetValue(evt.Id, out var handler)
+            ? handler(evt, cancellationToken)
             : ValueTask.CompletedTask;
     }
 }
