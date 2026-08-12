@@ -24,6 +24,7 @@ static class Program
         CenterRoomCompatibilityTests.Run();
         BattleFieldDangerousCompatibilityTests.Run();
         BattleFieldRoomCompatibilityTests.Run();
+        BattleFieldRoomCatalogCompatibilityTests.Run();
         BattleFieldMiddleBossCompatibilityTests.Run();
         BattleFieldEventMonsterCompatibilityTests.Run();
         BattleFieldRoomStateMachineCompatibilityTests.Run();
@@ -238,35 +239,43 @@ static class Program
         var serializer = new KSerializer();
         serializer.BeginWriting(buffer);
         Assert(serializer.Put(source.Destination.PerformerId));
-        Assert(serializer.Put(source.GetFirstSenderUid()));
-        Assert(serializer.Put(source.GetLastSenderUid()));
-        Assert(serializer.Put(source.EventId));
-        Assert(serializer.Put(source.Buffer));
+        Assert(serializer.Put(source.Destination.UidList.ToArray()));
+        Assert(serializer.Put((ushort)source.EventId));
+        Assert(serializer.Put(source.TraceToArray()));
+        Assert(serializer.Put(source.Buffer.Data.ToArray()));
         serializer.EndWriting();
 
-        Assert(buffer.Length > 0);
+        buffer.Reset();
+        serializer.BeginReading(buffer);
+        Assert(serializer.Get(out uint performerId) && performerId == 7);
+        Assert(serializer.Get(out long[] destinationUids));
+        Assert(destinationUids.SequenceEqual([10, 20]));
+        Assert(serializer.Get(out ushort eventId) && eventId == (ushort)source.EventId);
+        Assert(serializer.Get(out long[] trace));
+        Assert(trace.SequenceEqual([100, 200]));
+        Assert(serializer.Get(out byte[] payload));
+        Assert(payload.SequenceEqual([1, 2, 3, 4]));
+        serializer.EndReading();
     }
 
     private static void TestEventFromTypeIsNotSerialized()
     {
-        var source = new KEvent();
-        source.SetFromType(KEvent.EventFromType.Client);
-        source.SetData(1, [10, 11], (ushort)SystemEventId.E_TOOL_CHECK_LOGIN_REQ, [0xAB]);
-
-        var clone = source.Clone();
-        AssertEqual(KEvent.EventFromType.Client, clone.FromType);
-        Assert(source.Buffer.Data.Span.SequenceEqual(clone.Buffer.Data.Span));
+        var buffer = new KSerBuffer();
+        var serializer = new KSerializer();
+        serializer.BeginWriting(buffer);
+        Assert(!serializer.Put(new object()));
+        serializer.EndWriting();
     }
 
     private static void Assert(bool condition)
     {
         if (!condition)
-            throw new InvalidOperationException("Compatibility assertion failed.");
+            throw new InvalidOperationException("Protocol compatibility assertion failed.");
     }
 
-    private static void AssertEqual<T>(T expected, T actual)
+    private static void AssertEqual<T>(T expected, T actual) where T : IEquatable<T>
     {
-        if (!EqualityComparer<T>.Default.Equals(expected, actual))
+        if (!expected.Equals(actual))
             throw new InvalidOperationException($"Expected {expected}, got {actual}.");
     }
 }
