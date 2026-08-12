@@ -1,6 +1,6 @@
 namespace KncWX2Server.Protocol;
 
-/// <summary>Wire-level event identifier. Native KEvent stores this as an unsigned 16-bit value.</summary>
+/// <summary>Wire-level event identifier stored by native KEvent as unsigned short.</summary>
 public readonly record struct EventId(ushort Value)
 {
     public static implicit operator EventId(ushort value) => new(value);
@@ -8,24 +8,37 @@ public readonly record struct EventId(ushort Value)
 
     public bool IsSystem => Value < (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
     public bool IsSystemBoundary => Value == (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
-    public bool IsServer => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END;
+    public bool IsClient => Value >= GeneratedEventIdRanges.ClientStart && Value < GeneratedEventIdRanges.ClientEnd;
+    public bool IsClientBoundary => Value == GeneratedEventIdRanges.ClientEnd;
+    public bool IsServer => Value >= GeneratedEventIdRanges.ServerStart && Value < GeneratedEventIdRanges.ServerEnd;
+    public bool IsX2Server => Value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END && Value <= GeneratedEventIdRanges.ClientEnd;
 
     public SystemEventId? TryGetSystemId()
-        => IsSystem || IsSystemBoundary ? (SystemEventId)Value : null;
+        => Value <= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
+            ? (SystemEventId)Value
+            : null;
+
+    public ClientEventId? TryGetClientId()
+        => Value >= (ushort)ClientEventId.E_CLIENT_EVENT_ID_BEGIN &&
+           Value <= (ushort)ClientEventId.EGS_CLIENT_EVENT_ID_END
+            ? (ClientEventId)Value
+            : null;
 
     public ServerEventId? TryGetServerId()
-        => IsServer && Enum.IsDefined((ServerEventId)Value) ? (ServerEventId)Value : null;
+        => IsServer ? (ServerEventId)Value : null;
 
-    /// <summary>Managed full-event name. ID 20 is EVENT_X2_STARTUP; client IDs follow from 21.</summary>
+    public X2ServerEventId? TryGetX2ServerId()
+        => IsX2Server ? (X2ServerEventId)Value : null;
+
     public override string ToString()
         => GeneratedEventIdNames.Get(Value)
            ?? EventIdNames.GetSystem(Value);
 
-    /// <summary>Preserves native KEvent::GetIDStr behavior: IDs at or above the system boundary resolve to E_SYSTEM_EVENT_ID_END.</summary>
+    /// <summary>Preserves native KEvent::GetIDStr: IDs at or above the system boundary resolve to the boundary entry.</summary>
     public string ToLegacyName() => EventIdNames.GetLegacy(Value);
 }
 
-/// <summary>System event identifiers from the native EventID_System.h contract.</summary>
+/// <summary>System event identifiers from native EventID_System.h.</summary>
 public enum SystemEventId : ushort
 {
     E_HEART_BEAT = 0,
@@ -48,8 +61,6 @@ public enum SystemEventId : ushort
     E_CHECK_DDOS_GUARD_ACK = 17,
     E_CH_CONNECTION_LOST_FOR_DDOS_GUARD_NOT = 18,
     E_GS_CONNECTION_LOST_FOR_DDOS_GUARD_NOT = 19,
-
-    /// <summary>System segment boundary. The server-event enum continues at this value.</summary>
     E_SYSTEM_EVENT_ID_END = 20,
 }
 
@@ -83,8 +94,8 @@ internal static class EventIdNames
     public static string GetSystem(ushort value)
         => value < SystemNames.Length ? SystemNames[value] : $"UNKNOWN_EVENT_ID_{value}";
 
-    public static string GetLegacy(ushort value) =>
-        value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
+    public static string GetLegacy(ushort value)
+        => value >= (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END
             ? SystemNames[(ushort)SystemEventId.E_SYSTEM_EVENT_ID_END]
             : SystemNames[value];
 }
