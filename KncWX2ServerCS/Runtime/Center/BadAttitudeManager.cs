@@ -28,22 +28,40 @@ public sealed class BadAttitudeManager
     private readonly Dictionary<long, BadAttitudeInfo> _unitInfoList = [];
     private readonly Dictionary<(int Stage, int SubStage), int> _subStageMonsterScore = [];
     private readonly KBadAttitudeTable _table;
+    private readonly Func<int, int> _dungeonTypeResolver;
+    private readonly Func<int, bool>? _isDefenceDungeon;
+    private readonly int _defenceDungeonType;
     private int _dungeonType;
     private int _waveId = 1;
 
-    public BadAttitudeManager(KBadAttitudeTable? table = null) => _table = table ?? new KBadAttitudeTable();
+    public BadAttitudeManager(
+        KBadAttitudeTable? table = null,
+        Func<int, int>? dungeonTypeResolver = null,
+        Func<int, bool>? isDefenceDungeon = null,
+        int defenceDungeonType = 0)
+    {
+        _table = table ?? new KBadAttitudeTable();
+        _dungeonTypeResolver = dungeonTypeResolver ?? static dungeonIdAndDiff => dungeonIdAndDiff;
+        _isDefenceDungeon = isDefenceDungeon;
+        _defenceDungeonType = defenceDungeonType;
+    }
 
     public int UnitCount => _unitInfoList.Count;
     public int WaveId => _waveId;
     public IReadOnlyDictionary<long, BadAttitudeInfo> UnitInfoList => _unitInfoList;
 
-    public void Init(IEnumerable<long> unitUids, int dungeonType)
+    public void Init(IEnumerable<long> unitUids, int dungeonIdAndDiff)
     {
         ArgumentNullException.ThrowIfNull(unitUids);
 
         _unitInfoList.Clear();
         _subStageMonsterScore.Clear();
-        _dungeonType = dungeonType;
+        _dungeonType = _dungeonTypeResolver(dungeonIdAndDiff);
+        if (_isDefenceDungeon?.Invoke(dungeonIdAndDiff) == true)
+        {
+            _dungeonType = _defenceDungeonType;
+        }
+
         _waveId = 1;
 
         foreach (var unitUid in unitUids)
@@ -63,7 +81,7 @@ public sealed class BadAttitudeManager
         {
             if (info.VotedUnitUids.Remove(unitUid))
             {
-                info.VotePoint = Math.Max(0, info.VotePoint - 1);
+                info.VotePoint--;
             }
         }
 
