@@ -208,9 +208,8 @@ public sealed class BattleFieldMonsterManager
     {
         var now = nowUtc ?? DateTimeOffset.UtcNow;
         return _respawnReservations
-            .Where(static pair => pair.Value.IsRespawnTimeOver(pair.Value.ReservedAtUtc + TimeSpan.FromTicks(1)))
+            .Where(pair => pair.Value.IsRespawnTimeOver(now))
             .Select(pair => pair.Key)
-            .Where(uid => _respawnReservations[uid].IsRespawnTimeOver(now))
             .OrderBy(static id => id)
             .ToArray();
     }
