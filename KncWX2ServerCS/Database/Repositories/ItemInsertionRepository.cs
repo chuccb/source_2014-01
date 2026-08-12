@@ -38,7 +38,7 @@ public sealed class ItemInsertionRepository
                 .ConfigureAwait(false);
 
             if (itemUid <= 0)
-                return await RollbackAsync(tx, new(-11, 0, null), cancellationToken).ConfigureAwait(false);
+                return await RollbackAsync(tx, new(-11, itemUid, endDate), cancellationToken).ConfigureAwait(false);
 
             if (periodType == 0 && period > 0)
             {
@@ -54,7 +54,7 @@ public sealed class ItemInsertionRepository
                     .ConfigureAwait(false);
 
                 if (rows != 1)
-                    return await RollbackAsync(tx, new(-12, 0, null), cancellationToken).ConfigureAwait(false);
+                    return await RollbackAsync(tx, new(-12, itemUid, endDate), cancellationToken).ConfigureAwait(false);
             }
 
             if (periodType == 1)
@@ -68,7 +68,7 @@ public sealed class ItemInsertionRepository
                     .ConfigureAwait(false);
 
                 if (rows != 1)
-                    return await RollbackAsync(tx, new(-13, 0, null), cancellationToken).ConfigureAwait(false);
+                    return await RollbackAsync(tx, new(-13, itemUid, endDate), cancellationToken).ConfigureAwait(false);
             }
 
             if (periodType == 2)
@@ -82,7 +82,7 @@ public sealed class ItemInsertionRepository
                     .ConfigureAwait(false);
 
                 if (rows != 1)
-                    return await RollbackAsync(tx, new(-12, 0, null), cancellationToken).ConfigureAwait(false);
+                    return await RollbackAsync(tx, new(-12, itemUid, endDate), cancellationToken).ConfigureAwait(false);
             }
 
             if (enchantLevel > 0)
@@ -96,7 +96,7 @@ public sealed class ItemInsertionRepository
                     .ConfigureAwait(false);
 
                 if (rows != 1)
-                    return await RollbackAsync(tx, new(-14, 0, null), cancellationToken).ConfigureAwait(false);
+                    return await RollbackAsync(tx, new(-14, itemUid, endDate), cancellationToken).ConfigureAwait(false);
             }
 
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
