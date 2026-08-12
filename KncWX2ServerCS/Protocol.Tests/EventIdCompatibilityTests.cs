@@ -5,8 +5,9 @@ internal static class EventIdCompatibilityTests
     public static void Run()
     {
         VerifySystemValues();
-        VerifyBoundary();
-        VerifyFullClientSequence();
+        VerifyX2Boundary();
+        VerifyClientRange();
+        VerifyServerRange();
         VerifyUnknownRoundTrip();
         VerifyPerformerLimit();
         VerifyLegacyLookup();
@@ -21,7 +22,7 @@ internal static class EventIdCompatibilityTests
         for (var index = 0; index < expected.Length; index++)
         {
             var id = expected[index];
-            var eventId = new EventId((ushort)id);
+            var eventId = new EventId(id);
 
             AssertEqual((ushort)index, (ushort)id);
             AssertEqual(id, eventId.TryGetSystemId());
@@ -31,42 +32,57 @@ internal static class EventIdCompatibilityTests
         AssertEqual((ushort)20, (ushort)SystemEventId.E_SYSTEM_EVENT_ID_END);
     }
 
-    private static void VerifyBoundary()
+    private static void VerifyX2Boundary()
     {
-        var boundary = new EventId((ushort)SystemEventId.E_SYSTEM_EVENT_ID_END);
+        var startup = new EventId(SystemEventId.E_SYSTEM_EVENT_ID_END);
 
-        Assert(!boundary.IsSystem);
-        Assert(boundary.IsSystemBoundary);
-        Assert(boundary.IsServer);
-        AssertEqual(SystemEventId.E_SYSTEM_EVENT_ID_END, boundary.TryGetSystemId());
-        AssertEqual(ServerEventId.EVENT_X2_STARTUP, boundary.TryGetServerId());
-        AssertEqual(nameof(ServerEventId.EVENT_X2_STARTUP), boundary.ToString());
+        Assert(!startup.IsSystem);
+        Assert(startup.IsSystemBoundary);
+        Assert(startup.IsX2Server);
+        Assert(!startup.IsServer);
+        AssertEqual(SystemEventId.E_SYSTEM_EVENT_ID_END, startup.TryGetSystemId());
+        AssertEqual(X2ServerEventId.EVENT_X2_STARTUP, startup.TryGetX2ServerId());
+        AssertEqual(nameof(X2ServerEventId.EVENT_X2_STARTUP), startup.ToString());
     }
 
-    private static void VerifyFullClientSequence()
+    private static void VerifyClientRange()
     {
-        AssertEqual((ushort)21, (ushort)ServerEventId.EGS_GOOD_JOB_1_REQ);
-        AssertEqual((ushort)22, (ushort)ServerEventId.EGS_GOOD_JOB_2_REQ);
-        AssertEqual((ushort)1222, (ushort)ServerEventId.EGS_READY_TO_SOSUN_EVENT_ACK);
-        AssertEqual((ushort)1223, (ushort)ServerEventId.EGS_CLIENT_EVENT_ID_END);
+        AssertEqual((ushort)21, (ushort)ClientEventId.EGS_GOOD_JOB_1_REQ);
+        AssertEqual((ushort)22, (ushort)ClientEventId.EGS_GOOD_JOB_2_REQ);
+        AssertEqual((ushort)1222, (ushort)ClientEventId.EGS_READY_TO_SOSUN_EVENT_ACK);
+        AssertEqual((ushort)1223, (ushort)ClientEventId.EGS_CLIENT_EVENT_ID_END);
+        AssertEqual((ushort)21, EventId.ClientStart);
+        AssertEqual((ushort)1223, EventId.ClientEnd);
 
-        AssertEqual(
-            nameof(ServerEventId.EGS_GOOD_JOB_1_REQ),
-            new EventId(21).ToString());
-        AssertEqual(
-            nameof(ServerEventId.EGS_READY_TO_SOSUN_EVENT_ACK),
-            new EventId(1222).ToString());
-        AssertEqual(
-            nameof(ServerEventId.EGS_CLIENT_EVENT_ID_END),
-            new EventId(1223).ToString());
-
-        for (ushort value = 21; value < 1223; value++)
+        for (ushort value = EventId.ClientStart; value < EventId.ClientEnd; value++)
         {
             var id = new EventId(value);
-            Assert(id.IsServer);
-            Assert(id.TryGetServerId() is not null);
+            Assert(id.IsClient);
+            AssertEqual((ClientEventId)value, id.TryGetClientId());
             Assert(!string.IsNullOrEmpty(id.ToString()));
         }
+
+        var end = new EventId(EventId.ClientEnd);
+        Assert(end.IsClientBoundary);
+        Assert(!end.IsClient);
+        AssertEqual(ClientEventId.EGS_CLIENT_EVENT_ID_END, end.TryGetClientId());
+    }
+
+    private static void VerifyServerRange()
+    {
+        AssertEqual((ushort)1223, EventId.ServerBoundary);
+        AssertEqual((ushort)1224, EventId.ServerStart);
+        Assert(EventId.ServerEnd > EventId.ServerStart);
+
+        var first = new EventId(EventId.ServerStart);
+        Assert(first.IsServer);
+        AssertEqual((ServerEventId)EventId.ServerStart, first.TryGetServerId());
+        Assert(!string.IsNullOrEmpty(first.ToString()));
+
+        var boundary = new EventId(EventId.ServerBoundary);
+        Assert(boundary.IsServerBoundary);
+        Assert(!boundary.IsServer);
+        AssertEqual(ServerEventId.E_SERVER_EVENT_ID_BEGIN, boundary.TryGetServerId());
     }
 
     private static void VerifyUnknownRoundTrip()
@@ -76,17 +92,19 @@ internal static class EventIdCompatibilityTests
 
         Assert(!eventId.IsSystem);
         Assert(!eventId.IsSystemBoundary);
-        Assert(eventId.IsServer);
+        Assert(!eventId.IsClient);
+        Assert(!eventId.IsServer);
+        Assert(!eventId.IsX2Server);
         AssertEqual(value, (ushort)eventId);
         AssertEqual(value, new EventId(value).Value);
         AssertEqual("UNKNOWN_EVENT_ID_48879", eventId.ToString());
         Assert(eventId.TryGetServerId() is null);
+        Assert(eventId.TryGetClientId() is null);
     }
 
     private static void VerifyLegacyLookup()
     {
-        var ids = new ushort[] { 20, 21, 1223, ushort.MaxValue };
-        foreach (var id in ids)
+        foreach (var id in new ushort[] { 20, 21, EventId.ClientEnd, EventId.ServerStart, ushort.MaxValue })
         {
             AssertEqual(
                 nameof(SystemEventId.E_SYSTEM_EVENT_ID_END),
