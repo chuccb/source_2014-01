@@ -5,10 +5,6 @@
     <EventIdGeneratedFile>$(MSBuildProjectDirectory)/Generated/EventId.generated.cs</EventIdGeneratedFile>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="Generated/EventId.generated.cs" Visible="false" />
-  </ItemGroup>
-
   <Target Name="GenerateEventIds" BeforeTargets="CoreCompile">
     <MakeDir Directories="$(MSBuildProjectDirectory)/Generated" />
     <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Server.h&quot; &quot;$(EventIdGeneratedFile)&quot;" />
