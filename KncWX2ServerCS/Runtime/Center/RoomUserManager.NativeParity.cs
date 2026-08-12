@@ -195,7 +195,7 @@ public static class RoomUserManagerNativeParityExtensions
     public static bool IsAllPlayerWantRematch(this RoomUserManager manager)
     {
         var users = EnumerateGameUnitUids(manager)
-            .Select(manager.GetUser)
+            .Select(id => manager.GetUser(id))
             .OfType<RoomUser>()
             .ToArray();
 
@@ -234,7 +234,7 @@ public static class RoomUserManagerNativeParityExtensions
     public static bool IsAllPlayerPrepareForDefenceDungeon(this RoomUserManager manager)
     {
         var users = EnumerateGameUnitUids(manager)
-            .Select(manager.GetUser)
+            .Select(id => manager.GetUser(id))
             .OfType<RoomUser>()
             .ToArray();
 
@@ -275,7 +275,7 @@ public static class RoomUserManagerNativeParityExtensions
     {
         var leave = new List<long>();
         var users = EnumerateGameUnitUids(manager)
-            .Select(manager.GetUser)
+            .Select(id => manager.GetUser(id))
             .OfType<RoomUser>()
             .ToArray();
 
@@ -305,7 +305,7 @@ public static class RoomUserManagerNativeParityExtensions
 
     public static IReadOnlyList<long> GetUnitUIDListDisagreeEnterDefenceDungeon(this RoomUserManager manager) =>
         EnumerateGameUnitUids(manager)
-            .Select(manager.GetUser)
+            .Select(id => manager.GetUser(id))
             .OfType<RoomUser>()
             .Where(user =>
                 user.IsPrepareForDefence &&
@@ -346,7 +346,7 @@ public static class RoomUserManagerNativeParityExtensions
     public static bool IsOnlyPvpNpcInRoom(this RoomUserManager manager, out IReadOnlyList<long> npcUnitUids)
     {
         var users = EnumerateGameUnitUids(manager)
-            .Select(manager.GetUser)
+            .Select(id => manager.GetUser(id))
             .OfType<RoomUser>()
             .ToArray();
 
