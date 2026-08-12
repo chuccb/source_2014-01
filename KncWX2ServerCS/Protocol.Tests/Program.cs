@@ -216,7 +216,7 @@ static class Program
         AssertEqual(200, ev.GetLastSenderUid());
         ev.PopTrace();
         AssertEqual(100, ev.GetLastSenderUid());
-        AssertEqual("E_HEART_BEAT", ev.GetIdString());
+        Assert(ev.GetIdString() == "E_HEART_BEAT");
 
         var clone = ev.Clone();
         AssertEqual(ev.EventId, clone.EventId);
