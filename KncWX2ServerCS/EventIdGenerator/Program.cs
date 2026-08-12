@@ -31,7 +31,8 @@ ValidateNoOverlap(clientNames, serverNames);
 const int systemBoundary = 20;
 var clientStart = systemBoundary + 1;
 var clientEnd = clientStart + clientNames.Count;
-var serverStart = clientEnd;
+var serverBoundary = clientEnd;
+var serverStart = serverBoundary + 1;
 var serverEnd = serverStart + serverNames.Count;
 
 ValidateRange(clientEnd, "client END");
@@ -55,7 +56,7 @@ sb.AppendLine();
 sb.AppendLine("/// <summary>Native ENUM_SERVER_EVENT_ID range from EventID_Server.h.</summary>");
 sb.AppendLine("public enum ServerEventId : ushort");
 sb.AppendLine("{");
-sb.AppendLine($"    E_SERVER_EVENT_ID_BEGIN = {serverStart},");
+sb.AppendLine($"    E_SERVER_EVENT_ID_BEGIN = {serverBoundary},");
 AppendEnumMembers(sb, serverNames, serverStart);
 sb.AppendLine("}");
 sb.AppendLine();
@@ -74,7 +75,7 @@ sb.AppendLine("{");
 sb.AppendLine("    public static string? Get(ushort value) => value switch");
 sb.AppendLine("    {");
 sb.AppendLine($"        {systemBoundary} => nameof(X2ServerEventId.EVENT_X2_STARTUP),");
-AppendNameCases(sb, clientNames, clientStart, "X2ServerEventId");
+AppendNameCases(sb, clientNames, clientStart, "ClientEventId");
 sb.AppendLine($"        {clientEnd} => nameof(ClientEventId.EGS_CLIENT_EVENT_ID_END),");
 AppendNameCases(sb, serverNames, serverStart, "ServerEventId");
 sb.AppendLine("        _ => null,");
@@ -92,7 +93,7 @@ sb.AppendLine("}");
 
 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 File.WriteAllText(outputPath, sb.ToString(), new UTF8Encoding(false));
-Console.WriteLine($"Generated client={clientNames.Count}, server={serverNames.Count}; client={clientStart}..{clientEnd - 1}, server={serverStart}..{serverEnd - 1}.");
+Console.WriteLine($"Generated client={clientNames.Count}, server={serverNames.Count}; client={clientStart}..{clientEnd - 1}, server={serverStart}..{serverEnd - 1}, serverBoundary={serverBoundary}.");
 return 0;
 
 static void AppendEnumMembers(StringBuilder sb, IReadOnlyList<string> names, int start)
