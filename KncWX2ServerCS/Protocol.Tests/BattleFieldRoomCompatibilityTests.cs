@@ -7,6 +7,7 @@ internal static class BattleFieldRoomCompatibilityTests
         TestRoomManagerLifecycleAndJoinableSelection();
         TestRoomUnitAndHostLifecycle();
         TestDangerousManagerIntegration();
+        TestMonsterManagerIntegration();
     }
 
     private static void TestRoomManagerLifecycleAndJoinableSelection()
@@ -62,6 +63,28 @@ internal static class BattleFieldRoomCompatibilityTests
 
         room.GameManager.IncreaseDangerousValue(80);
         room.EndGame();
+        Assert(room.GameManager.DangerousValue == 0);
+    }
+
+    private static void TestMonsterManagerIntegration()
+    {
+        var manager = new BattleFieldRoomManager();
+        var room = manager.Create("Monster", 1, 7);
+        var at = new DateTimeOffset(2026, 8, 12, 3, 0, 0, TimeSpan.Zero);
+        var monster = new BattleFieldMonsterInfo(500, 9000, 12, 15, 0, false);
+
+        room.StartGame([monster]);
+        Assert(room.MonsterManager.AliveMonsterCount == 1);
+        Assert(room.MonsterManager.AtStartedMonsterCount == 1);
+        Assert(room.MonsterManager.SetMonsterType(500, BattleFieldMonsterTypeFactor.BossNpc));
+        Assert(room.MonsterManager.SetMonsterDie(500, 100, 5, at));
+        Assert(room.MonsterManager.BossDieCount == 1);
+        Assert(room.MonsterManager.GetRespawnReadyNpcUids(at.AddSeconds(5.01)).SequenceEqual([500]));
+
+        room.OnCloseRoom();
+        Assert(room.State == RoomState.Closed);
+        Assert(room.MonsterManager.AliveMonsterCount == 0);
+        Assert(room.MonsterManager.RespawnReservations.Count == 0);
         Assert(room.GameManager.DangerousValue == 0);
     }
 
