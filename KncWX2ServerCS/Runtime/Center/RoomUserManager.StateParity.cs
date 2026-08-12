@@ -24,6 +24,30 @@ public static class RoomUserManagerStateParityExtensions
         return index < users.Length ? users[index] : null;
     }
 
+    public static int DeleteUserByGsUid(
+        this RoomUserManager manager,
+        long gsUid,
+        ICollection<(long UnitUid, long PartyUid)> removed,
+        RoomUserManager.UserListType type = RoomUserManager.UserListType.Game)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(removed);
+
+        var matches = GetUsers(manager, type)
+            .Where(user => user.GSUid == gsUid)
+            .OrderBy(static user => user.Cid)
+            .ToArray();
+
+        foreach (var user in matches)
+        {
+            // Native KRoomUserManager::DeleteUserByGsUID only gathers the leave list;
+            // actual deletion is performed by the caller after this method returns.
+            removed.Add((user.Cid, user.PartyUid));
+        }
+
+        return matches.Length;
+    }
+
     public static bool IsHost(this RoomUserManager manager, long cid)
     {
         ArgumentNullException.ThrowIfNull(manager);
@@ -160,8 +184,10 @@ public static class RoomUserManagerStateParityExtensions
         RoomUserManager.UserListType type = RoomUserManager.UserListType.Game)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        return manager.GetRoomSlotInfo(type == RoomUserManager.UserListType.Observer)
-            .FirstOrDefault(info => info.UnitUid == manager.GetUser(cid, type)?.UnitUid);
+        var user = manager.GetUser(cid, type);
+        return user is null
+            ? null
+            : manager.GetRoomSlotInfo(type).FirstOrDefault(info => info.UnitUid == user.UnitUid);
     }
 
     private static IEnumerable<RoomUser> GetUsers(
