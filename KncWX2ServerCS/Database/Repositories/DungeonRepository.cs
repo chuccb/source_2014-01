@@ -26,7 +26,8 @@ WITH Modes(GameMode) AS (VALUES
 (30270),(30271),(30272),(30280),(30281),(30282),(30290),(30291),(30292),
 (30300),(30301),(30302))
 INSERT INTO GDungeonClear(UnitUID,GameMode,MaxScore,MaxTotalRank,RegDate)
-SELECT $uid,GameMode,0,0,$now FROM Modes;""";
+SELECT $uid,GameMode,0,0,$now FROM Modes;
+""";
         c.Parameters.AddWithValue("$uid",unitUid);
         c.Parameters.AddWithValue("$now",DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
         await c.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
