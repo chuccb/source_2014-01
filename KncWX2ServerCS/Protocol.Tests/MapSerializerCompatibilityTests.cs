@@ -23,7 +23,7 @@ static class MapSerializerCompatibilityTests
         byte[] expected =
         [
             22,
-            0, 0, 0, 2,
+            6, 0, 0, 0, 2,
             16,
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
@@ -62,7 +62,7 @@ static class MapSerializerCompatibilityTests
         byte[] data =
         [
             22,
-            0, 0, 0, 2,
+            6, 0, 0, 0, 2,
             16,
             5, 0, 0, 0, 1,
             5, 0, 0, 0, 2,
