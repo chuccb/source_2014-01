@@ -2,14 +2,15 @@
   <PropertyGroup>
     <AssemblyName>KncWX2Server.Protocol</AssemblyName>
     <RootNamespace>KncWX2Server.Protocol</RootNamespace>
+    <EventIdGeneratedFile>$(MSBuildProjectDirectory)/Generated/EventId.generated.cs</EventIdGeneratedFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(IntermediateOutputPath)Generated/EventId.generated.cs" Visible="false" />
+    <Compile Include="Generated/EventId.generated.cs" Visible="false" />
   </ItemGroup>
 
   <Target Name="GenerateEventIds" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(IntermediateOutputPath)Generated" />
-    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Server.h&quot; &quot;$(IntermediateOutputPath)Generated/EventId.generated.cs&quot;" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)/Generated" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Server.h&quot; &quot;$(EventIdGeneratedFile)&quot;" />
   </Target>
 </Project>
