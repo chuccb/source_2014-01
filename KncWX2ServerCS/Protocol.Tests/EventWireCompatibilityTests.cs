@@ -6,6 +6,7 @@ internal static class EventWireCompatibilityTests
     {
         RoundTripSystemEvent();
         RoundTripClientEvent();
+        RoundTripServerEvent();
         PreserveTraceAndPerformerSet();
         PreservePayloadBytes();
     }
@@ -26,17 +27,27 @@ internal static class EventWireCompatibilityTests
 
     private static void RoundTripClientEvent()
     {
-        var source = CreateEvent(ServerEventId.EGS_GOOD_JOB_1_REQ, [100, 200], [0x10, 0x20]);
+        var source = CreateEvent(ClientEventId.EGS_GOOD_JOB_1_REQ, [100, 200], [0x10, 0x20]);
         var restored = RoundTrip(source);
 
         AssertEqual(source.Id, restored.Id);
-        AssertEqual(nameof(ServerEventId.EGS_GOOD_JOB_1_REQ), restored.Id.ToString());
+        AssertEqual(nameof(ClientEventId.EGS_GOOD_JOB_1_REQ), restored.Id.ToString());
         AssertEqual(nameof(SystemEventId.E_SYSTEM_EVENT_ID_END), restored.GetIdString());
+    }
+
+    private static void RoundTripServerEvent()
+    {
+        var source = CreateEvent(GetFirstServerEventId(), [300, 400], [0x30, 0x40]);
+        var restored = RoundTrip(source);
+
+        AssertEqual(source.Id, restored.Id);
+        Assert(restored.Id.IsServer);
+        AssertEqual(source.Id.ToString(), restored.Id.ToString());
     }
 
     private static void PreserveTraceAndPerformerSet()
     {
-        var source = CreateEvent(ServerEventId.EGS_GOOD_JOB_2_REQ, [-1, 0x1234], [0xAA]);
+        var source = CreateEvent(ClientEventId.EGS_GOOD_JOB_2_REQ, [-1, 0x1234], [0xAA]);
         source.Destination.AddUid(30);
         source.Destination.AddUid(10);
         source.Destination.AddUid(20);
@@ -81,6 +92,9 @@ internal static class EventWireCompatibilityTests
         return value;
     }
 
+    private static ServerEventId GetFirstServerEventId()
+        => (ServerEventId)GeneratedServerEventRange.Start;
+
     private static KEvent RoundTrip(KEvent source)
     {
         var buffer = new KSerBuffer();
@@ -115,4 +129,9 @@ internal static class EventWireCompatibilityTests
         if (!expected.SequenceEqual(actual))
             throw new InvalidOperationException("Expected sequences to be equal.");
     }
+}
+
+internal static class GeneratedServerEventRange
+{
+    public const ushort Start = 1223;
 }
