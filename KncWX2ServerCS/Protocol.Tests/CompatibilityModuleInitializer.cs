@@ -9,5 +9,6 @@ internal static class CompatibilityModuleInitializer
         RoomUserManagerStateParityCompatibilityTests.Run();
         BattleFieldMonsterCompatibilityTests.Run();
         HenirResultTableCompatibilityTests.Run();
+        KLotteryCompatibilityTests.Run();
     }
 }
