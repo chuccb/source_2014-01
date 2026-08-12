@@ -82,6 +82,7 @@ internal static class CenterRuntimeCompatibilityTests
         Assert(manager.EnterRoom(first));
         Assert(manager.EnterRoom(second));
         Assert(manager.EnterRoom(third));
+        manager.SetAllReady(true);
         manager.StartGame();
         manager.StartPlay();
 
@@ -115,6 +116,7 @@ internal static class CenterRuntimeCompatibilityTests
         var right = CreateUser(31, 1);
         Assert(manager.EnterRoom(left));
         Assert(manager.EnterRoom(right));
+        Assert(manager.SetAllReady(true));
         manager.StartGame();
         manager.StartPlay();
 
