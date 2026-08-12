@@ -22,7 +22,7 @@ internal static class EventIdCompatibilityTests
         for (var index = 0; index < expected.Length; index++)
         {
             var id = expected[index];
-            var eventId = new EventId(id);
+            var eventId = new EventId((ushort)id);
 
             AssertEqual((ushort)index, (ushort)id);
             AssertEqual(id, eventId.TryGetSystemId());
@@ -34,7 +34,7 @@ internal static class EventIdCompatibilityTests
 
     private static void VerifyX2Boundary()
     {
-        var startup = new EventId(SystemEventId.E_SYSTEM_EVENT_ID_END);
+        var startup = new EventId((ushort)SystemEventId.E_SYSTEM_EVENT_ID_END);
 
         Assert(!startup.IsSystem);
         Assert(startup.IsSystemBoundary);
