@@ -6,6 +6,7 @@ internal static class EventIdCompatibilityTests
     {
         VerifySystemValues();
         VerifyBoundary();
+        VerifyFullClientSequence();
         VerifyUnknownRoundTrip();
         VerifyPerformerLimit();
         VerifyLegacyLookup();
@@ -33,7 +34,36 @@ internal static class EventIdCompatibilityTests
 
         Assert(!boundary.IsSystem);
         Assert(boundary.IsSystemBoundary);
+        Assert(boundary.IsServer);
         AssertEqual(SystemEventId.E_SYSTEM_EVENT_ID_END, boundary.TryGetSystemId());
+        AssertEqual(ServerEventId.EVENT_X2_STARTUP, boundary.TryGetServerId());
+        AssertEqual(nameof(ServerEventId.EVENT_X2_STARTUP), boundary.ToString());
+    }
+
+    private static void VerifyFullClientSequence()
+    {
+        AssertEqual((ushort)21, (ushort)ServerEventId.EGS_GOOD_JOB_1_REQ);
+        AssertEqual((ushort)22, (ushort)ServerEventId.EGS_GOOD_JOB_2_REQ);
+        AssertEqual((ushort)1222, (ushort)ServerEventId.EGS_READY_TO_SOSUN_EVENT_ACK);
+        AssertEqual((ushort)1223, (ushort)ServerEventId.EGS_CLIENT_EVENT_ID_END);
+
+        AssertEqual(
+            nameof(ServerEventId.EGS_GOOD_JOB_1_REQ),
+            new EventId(21).ToString());
+        AssertEqual(
+            nameof(ServerEventId.EGS_READY_TO_SOSUN_EVENT_ACK),
+            new EventId(1222).ToString());
+        AssertEqual(
+            nameof(ServerEventId.EGS_CLIENT_EVENT_ID_END),
+            new EventId(1223).ToString());
+
+        for (ushort value = 21; value < 1223; value++)
+        {
+            var id = new EventId(value);
+            Assert(id.IsServer);
+            Assert(id.TryGetServerId() is not null);
+            Assert(!string.IsNullOrEmpty(id.ToString()));
+        }
     }
 
     private static void VerifyUnknownRoundTrip()
@@ -43,20 +73,25 @@ internal static class EventIdCompatibilityTests
 
         Assert(!eventId.IsSystem);
         Assert(!eventId.IsSystemBoundary);
+        Assert(eventId.IsServer);
         AssertEqual(value, (ushort)eventId);
         AssertEqual(value, new EventId(value).Value);
         AssertEqual("UNKNOWN_EVENT_ID_48879", eventId.ToString());
+        Assert(eventId.TryGetServerId() is null);
     }
 
     private static void VerifyLegacyLookup()
     {
-        var unknown = new EventId(ushort.MaxValue);
-        AssertEqual(
-            nameof(SystemEventId.E_SYSTEM_EVENT_ID_END),
-            unknown.ToLegacyName());
+        var ids = new ushort[] { 20, 21, 1223, ushort.MaxValue };
+        foreach (var id in ids)
+        {
+            AssertEqual(
+                nameof(SystemEventId.E_SYSTEM_EVENT_ID_END),
+                new EventId(id).ToLegacyName());
+        }
 
         var ev = new KEvent();
-        ev.SetData(0, [1, 2], unknown, ReadOnlySpan<byte>.Empty);
+        ev.SetData(0, [1, 2], ushort.MaxValue, ReadOnlySpan<byte>.Empty);
         AssertEqual(nameof(SystemEventId.E_SYSTEM_EVENT_ID_END), ev.GetIdString());
     }
 
