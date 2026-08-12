@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>KncWX2Server.Protocol</AssemblyName>
+    <RootNamespace>KncWX2Server.Protocol</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)Generated\\EventId.generated.cs" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="GenerateEventIds" BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(IntermediateOutputPath)Generated" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\\..\\EventIdGenerator\\EventIdGenerator.csproj&quot; --configuration Release --no-restore -- &quot;$(MSBuildProjectDirectory)\\..\\..\\KncWX2Server\\Common\\EventID_Client.h&quot; &quot;$(IntermediateOutputPath)Generated\\EventId.generated.cs&quot; &quot;$(MSBuildProjectDirectory)\\..\\..\\KncWX2Server\\Common\\OnlyGlobal\\EventID_Client_global.h&quot;" />
+  </Target>
+</Project>
