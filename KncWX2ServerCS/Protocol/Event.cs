@@ -133,8 +133,10 @@ public sealed class KEvent
             FirstTrace = -1;
     }
 
-    public string GetIdString() => Id.ToString();
-    public static string GetIdString(EventId eventId) => eventId.ToString();
+    /// <summary>Preserves native KEvent::GetIDStr semantics.</summary>
+    public string GetIdString() => Id.ToLegacyName();
+
+    public static string GetIdString(EventId eventId) => eventId.ToLegacyName();
     public void SetFromType(EventFromType type) => FromType = type;
 
     /// <summary>Preserves the legacy server-event validation hook until the missing native client-event table is restored.</summary>
