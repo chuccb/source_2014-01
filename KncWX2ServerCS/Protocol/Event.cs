@@ -2,7 +2,7 @@ namespace KncWX2Server.Protocol;
 
 public sealed class KPerformerInfo
 {
-    public const int MaxUidNum = 100;
+    public const int MaxUidNum = 2000;
 
     private readonly SortedSet<long> _uids = [];
 
@@ -139,9 +139,9 @@ public sealed class KEvent
     public static string GetIdString(EventId eventId) => eventId.ToLegacyName();
     public void SetFromType(EventFromType type) => FromType = type;
 
-    /// <summary>Preserves the legacy server-event validation hook until the missing native client-event table is restored.</summary>
+    /// <summary>Preserves the legacy server-event validation hook until the native validation table is fully wired.</summary>
     public bool IsValidEventId(IReadOnlySet<ushort>? serverEventIds = null)
-        => FromType != EventFromType.Client || serverEventIds is null || !serverEventIds.Contains(Id.Value);
+        => FromType != EventFromType.Client || serverEventIds is null || serverEventIds.Contains(Id.Value);
 
     public KEvent Clone()
     {
