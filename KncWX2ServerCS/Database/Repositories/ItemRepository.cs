@@ -35,7 +35,8 @@ LEFT JOIN GItemEndurance e ON e.ItemUID=i.ItemUID
 LEFT JOIN GItemQuantity q ON q.ItemUID=i.ItemUID
 LEFT JOIN GItemEnchant en ON en.ItemUID=i.ItemUID
 WHERE i.UnitUID=$uid AND i.RegDate<>i.DelDate
-ORDER BY i.ItemUID;""";c.Parameters.AddWithValue("$uid",unitUid);var list=new List<ItemRow>();await using var r=await c.ExecuteReaderAsync(ct).ConfigureAwait(false);while(await r.ReadAsync(ct).ConfigureAwait(false))list.Add(new(r.GetInt64(0),r.GetInt32(1),r.GetInt32(2),r.GetInt32(3),r.IsDBNull(4)?null:r.GetInt32(4),r.IsDBNull(5)?null:r.GetString(5),r.IsDBNull(6)?null:r.GetInt32(6),r.IsDBNull(7)?null:r.GetInt32(7),r.IsDBNull(8)?null:r.GetInt32(8)));return list;}
+ORDER BY i.ItemUID;
+""";c.Parameters.AddWithValue("$uid",unitUid);var list=new List<ItemRow>();await using var r=await c.ExecuteReaderAsync(ct).ConfigureAwait(false);while(await r.ReadAsync(ct).ConfigureAwait(false))list.Add(new(r.GetInt64(0),r.GetInt32(1),r.GetInt32(2),r.GetInt32(3),r.IsDBNull(4)?null:r.GetInt32(4),r.IsDBNull(5)?null:r.GetString(5),r.IsDBNull(6)?null:r.GetInt32(6),r.IsDBNull(7)?null:r.GetInt32(7),r.IsDBNull(8)?null:r.GetInt32(8)));return list;}
 
     private async Task<bool> ExistsAsync(string sql,CancellationToken ct,params(string Name,object Value)[] ps)=>Convert.ToInt64(await ScalarAsync(sql,ct,ps).ConfigureAwait(false))!=0;
     private async Task<object?> ScalarAsync(string sql,CancellationToken ct,params(string Name,object Value)[] ps){await using var c=_database.Connection.CreateCommand();c.CommandText=sql;foreach(var p in ps)c.Parameters.AddWithValue(p.Name,p.Value);return await c.ExecuteScalarAsync(ct).ConfigureAwait(false);}
