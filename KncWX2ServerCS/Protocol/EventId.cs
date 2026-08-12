@@ -30,10 +30,14 @@ public readonly record struct EventId(ushort Value)
             : null;
 
     public ClientEventId? TryGetClientId()
-        => IsClient ? (ClientEventId)Value : null;
+        => IsClient || IsClientBoundary
+            ? (ClientEventId)Value
+            : null;
 
     public ServerEventId? TryGetServerId()
-        => IsServerBoundary || IsServer ? (ServerEventId)Value : null;
+        => IsServerBoundary || IsServer
+            ? (ServerEventId)Value
+            : null;
 
     public X2ServerEventId? TryGetX2ServerId()
         => IsX2Server ? (X2ServerEventId)Value : null;
