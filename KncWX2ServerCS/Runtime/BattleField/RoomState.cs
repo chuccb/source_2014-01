@@ -94,12 +94,33 @@ public sealed class BattleFieldRoom : Room
 {
     public uint BattleFieldId { get; private set; }
     public BattleFieldGameManager GameManager { get; }
+    public BattleFieldMonsterManager MonsterManager { get; }
+
     public BattleFieldRoom(long roomUid,string name,int maxSlots,uint battleFieldId=uint.MaxValue,BattleFieldDangerousConfig? dangerousConfig=null):base(roomUid,name,RoomType.BattleField,maxSlots)
     {
         BattleFieldId=battleFieldId;
         GameManager=new BattleFieldGameManager(dangerousConfig);
+        MonsterManager=new BattleFieldMonsterManager();
     }
+
     public void SetBattleFieldId(uint id)=>BattleFieldId=id;
-    public void StartGame()=>GameManager.StartGame();
-    public void EndGame()=>GameManager.EndGame();
+
+    public void StartGame(IEnumerable<BattleFieldMonsterInfo>? initialMonsters = null)
+    {
+        GameManager.StartGame();
+        MonsterManager.StartGame(initialMonsters);
+    }
+
+    public void EndGame()
+    {
+        MonsterManager.EndGame();
+        GameManager.EndGame();
+    }
+
+    public void OnCloseRoom()
+    {
+        MonsterManager.OnCloseRoom();
+        GameManager.EndGame();
+        SetState(RoomState.Closed);
+    }
 }
