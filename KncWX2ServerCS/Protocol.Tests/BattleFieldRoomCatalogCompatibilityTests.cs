@@ -145,6 +145,8 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
     {
         var manager = new BattleFieldRoomManager();
         var room = manager.Create("Existing", 2, 10);
+        Assert(room.OpenSlot(0));
+        Assert(room.OpenSlot(1));
         Assert(manager.AddUnit(room.RoomUid, 100, out _));
 
         var catalog = new BattleFieldRoomCatalog();
