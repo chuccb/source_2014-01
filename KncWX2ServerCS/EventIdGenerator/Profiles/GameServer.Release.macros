@@ -1,0 +1,4 @@
+# Native GameServer_2003.vcproj Release|Win32 preprocessor definitions.
+WIN32
+NDEBUG
+_WINDOWS
