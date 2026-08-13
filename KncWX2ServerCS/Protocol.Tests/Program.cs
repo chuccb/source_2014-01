@@ -238,24 +238,21 @@ static class Program
         var buffer = new KSerBuffer();
         var serializer = new KSerializer();
         serializer.BeginWriting(buffer);
-        Assert(serializer.Put(source.Destination.PerformerId));
-        Assert(serializer.Put(source.Destination.UidList.ToArray()));
-        Assert(serializer.Put((ushort)source.EventId));
-        Assert(serializer.Put(source.TraceToArray()));
-        Assert(serializer.Put(source.Buffer.Data.ToArray()));
+        Assert(serializer.PutEvent(source));
         serializer.EndWriting();
 
         buffer.Reset();
         serializer.BeginReading(buffer);
-        Assert(serializer.Get(out uint performerId) && performerId == 7);
-        Assert(serializer.Get(out long[] destinationUids));
-        Assert(destinationUids.SequenceEqual([10, 20]));
-        Assert(serializer.Get(out ushort eventId) && eventId == (ushort)source.EventId);
-        Assert(serializer.Get(out long[] trace));
-        Assert(trace.SequenceEqual([100, 200]));
-        Assert(serializer.Get(out byte[] payload));
-        Assert(payload.SequenceEqual([1, 2, 3, 4]));
+        var roundTrip = new KEvent();
+        Assert(serializer.GetEvent(roundTrip));
         serializer.EndReading();
+
+        AssertEqual(source.Destination.PerformerId, roundTrip.Destination.PerformerId);
+        Assert(roundTrip.Destination.UidList.SequenceEqual([10L, 20L]));
+        AssertEqual(source.FirstTrace, roundTrip.FirstTrace);
+        AssertEqual(source.LastTrace, roundTrip.LastTrace);
+        AssertEqual(source.EventId, roundTrip.EventId);
+        Assert(roundTrip.Buffer.Data.Span.SequenceEqual([1, 2, 3, 4]));
     }
 
     private static void TestEventFromTypeIsNotSerialized()
