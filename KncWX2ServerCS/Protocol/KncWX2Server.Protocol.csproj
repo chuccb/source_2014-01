@@ -3,10 +3,14 @@
     <AssemblyName>KncWX2Server.Protocol</AssemblyName>
     <RootNamespace>KncWX2Server.Protocol</RootNamespace>
     <EventIdGeneratedFile>$(MSBuildProjectDirectory)/Generated/EventId.generated.cs</EventIdGeneratedFile>
+    <EventIdMacroProfile>$(MSBuildProjectDirectory)/../EventIdGenerator/Profiles/X2Server.EventIdBaseline.macros</EventIdMacroProfile>
+
+    <!-- Current native compatibility profile. Keep this list synchronized with the profile file. -->
+    <DefineConstants>$(DefineConstants);WIN32;NDEBUG;_WINDOWS;SERV_UDP_RELAY_CHECKER;SERV_RECONNECT_LOGIC_FOR_DDOS_SOLUTION</DefineConstants>
   </PropertyGroup>
 
   <Target Name="GenerateEventIds" BeforeTargets="CoreCompile">
     <MakeDir Directories="$(MSBuildProjectDirectory)/Generated" />
-    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Server.h&quot; &quot;$(EventIdGeneratedFile)&quot;" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)/../EventIdGenerator/EventIdGenerator.csproj&quot; --configuration Release -- &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_System.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Client.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/OnlyGlobal/EventID_Client_Global.h&quot; &quot;$(MSBuildProjectDirectory)/../../KncWX2Server/Common/EventID_Server.h&quot; &quot;$(EventIdGeneratedFile)&quot; &quot;$(EventIdMacroProfile)&quot;" />
   </Target>
 </Project>
