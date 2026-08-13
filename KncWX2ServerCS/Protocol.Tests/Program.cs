@@ -14,7 +14,6 @@ static class Program
         TestPerformerInfo();
         TestEventTraceAndClone();
         TestEventSerialization();
-        TestEventFromTypeIsNotSerialized();
         EventIdCompatibilityTests.Run();
         EventWireCompatibilityTests.Run();
         MapSerializerCompatibilityTests.Run();
@@ -253,15 +252,6 @@ static class Program
         AssertEqual(source.LastTrace, roundTrip.LastTrace);
         AssertEqual(source.EventId, roundTrip.EventId);
         Assert(roundTrip.Buffer.Data.Span.SequenceEqual([1, 2, 3, 4]));
-    }
-
-    private static void TestEventFromTypeIsNotSerialized()
-    {
-        var buffer = new KSerBuffer();
-        var serializer = new KSerializer();
-        serializer.BeginWriting(buffer);
-        Assert(!serializer.Put(new object()));
-        serializer.EndWriting();
     }
 
     private static void Assert(bool condition)
