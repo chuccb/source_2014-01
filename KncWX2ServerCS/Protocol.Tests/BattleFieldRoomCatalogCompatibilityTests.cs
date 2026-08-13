@@ -131,13 +131,12 @@ internal static class BattleFieldRoomCatalogCompatibilityTests
     private static void TestNoCandidateIsNotAnError()
     {
         var manager = new BattleFieldRoomManager();
-        var room = manager.Create("Full", 1, 10);
-        Assert(manager.AddUnit(room.RoomUid, 1, out _));
+        var room = manager.Create("TooSmall", 1, 10);
 
         var catalog = new BattleFieldRoomCatalog();
         catalog.AddRoom(room);
 
-        var request = new BattleFieldRoomJoinRequest(10, 100, 0, 0);
+        var request = new BattleFieldRoomJoinRequest(10, 100, 0, 0, RequiredSlots: 2);
         Assert(catalog.TrySelectRoom(request, out var selected));
         Assert(selected is null);
     }
