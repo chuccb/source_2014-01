@@ -65,8 +65,8 @@ sb.AppendLine("internal static class GeneratedEventIdNames");
 sb.AppendLine("{");
 sb.AppendLine("    public static string? Get(ushort value)");
 sb.AppendLine("    {");
-sb.AppendLine("        if (Enum.IsDefined(typeof(SystemEventId), value))");
-sb.AppendLine("            return ((SystemEventId)value).ToString();");
+sb.AppendLine("        if (value == (ushort)X2ServerEventId.EVENT_X2_STARTUP)");
+sb.AppendLine("            return nameof(X2ServerEventId.EVENT_X2_STARTUP);");
 sb.AppendLine();
 sb.AppendLine("        if (Enum.IsDefined(typeof(ClientEventId), value))");
 sb.AppendLine("            return ((ClientEventId)value).ToString();");
@@ -74,8 +74,8 @@ sb.AppendLine();
 sb.AppendLine("        if (Enum.IsDefined(typeof(ServerEventId), value))");
 sb.AppendLine("            return ((ServerEventId)value).ToString();");
 sb.AppendLine();
-sb.AppendLine("        if (Enum.IsDefined(typeof(X2ServerEventId), value))");
-sb.AppendLine("            return ((X2ServerEventId)value).ToString();");
+sb.AppendLine("        if (Enum.IsDefined(typeof(SystemEventId), value))");
+sb.AppendLine("            return ((SystemEventId)value).ToString();");
 sb.AppendLine();
 sb.AppendLine("        return null;");
 sb.AppendLine("    }");
@@ -192,6 +192,8 @@ static string TranslateCondition(string expression)
     translated = Regex.Replace(translated, @"defined\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", "$1");
     translated = Regex.Replace(translated, @"!\s*defined\s+([A-Za-z_][A-Za-z0-9_]*)", "!$1");
     translated = Regex.Replace(translated, @"defined\s+([A-Za-z_][A-Za-z0-9_]*)", "$1");
+    translated = Regex.Replace(translated, @"(?<![A-Za-z0-9_])0(?![A-Za-z0-9_])", "false");
+    translated = Regex.Replace(translated, @"(?<![A-Za-z0-9_])1(?![A-Za-z0-9_])", "true");
     return translated.Trim();
 }
 
