@@ -1,0 +1,10 @@
+# Native EventID compatibility baseline for the current C#14 Protocol build.
+# WIN32/NDEBUG/_WINDOWS come from the native GameServer Release project.
+WIN32
+NDEBUG
+_WINDOWS
+
+# These two feature switches are required to preserve the native system EventID
+# boundary currently represented by EventID_System.h (E_SYSTEM_EVENT_ID_END = 20).
+SERV_UDP_RELAY_CHECKER
+SERV_RECONNECT_LOGIC_FOR_DDOS_SOLUTION
