@@ -23,11 +23,11 @@ RequireFile(serverPath, "Native EventID_Server.h");
 RequireFile(profilePath, "EventID macro profile");
 
 var profileName = Path.GetFileNameWithoutExtension(profilePath);
-var systemSource = TranslateEnumSource(systemPath, skip: ["E_SYSTEM_EVENT_ID_END"]);
+var systemSource = TranslateEnumSource(systemPath, "E_SYSTEM_EVENT_ID_END");
 var clientSource = string.Concat(
-    TranslateEnumSource(clientPath, skip: ["E_CLIENT_EVENT_ID_BEGIN", "EGS_CLIENT_EVENT_ID_END"]),
-    TranslateEnumSource(globalPath, skip: ["EGS_CLIENT_EVENT_ID_END"]));
-var serverSource = TranslateEnumSource(serverPath, skip: ["E_SERVER_EVENT_ID_BEGIN", "E_SERVER_EVENT_ID_END"]);
+    TranslateEnumSource(clientPath, "E_CLIENT_EVENT_ID_BEGIN", "EGS_CLIENT_EVENT_ID_END"),
+    TranslateEnumSource(globalPath, "EGS_CLIENT_EVENT_ID_END"));
+var serverSource = TranslateEnumSource(serverPath, "E_SERVER_EVENT_ID_BEGIN", "E_SERVER_EVENT_ID_END");
 
 ValidateNonEmpty(systemSource, "system");
 ValidateNonEmpty(clientSource, "client/global");
@@ -118,8 +118,9 @@ static void AppendEnum(
     sb.AppendLine("}");
 }
 
-static string TranslateEnumSource(string path, ISet<string> skip)
+static string TranslateEnumSource(string path, params string[] skip)
 {
+    var skipped = skip.ToHashSet(StringComparer.Ordinal);
     var builder = new StringBuilder();
     var enumRegex = new Regex(@"_ENUM\s*\(\s*(?<value>[^\)]*)\)", RegexOptions.Compiled);
     var directiveRegex = new Regex(@"^\s*#\s*(?<directive>[A-Za-z_][A-Za-z0-9_]*)(?:\s+(?<argument>.*?))?\s*$", RegexOptions.Compiled);
@@ -173,7 +174,7 @@ static string TranslateEnumSource(string path, ISet<string> skip)
 
         var value = match.Groups["value"].Value.Trim();
         var nameOnly = value.Split('=', 2)[0].Trim();
-        if (nameOnly.Length == 0 || skip.Contains(nameOnly))
+        if (nameOnly.Length == 0 || skipped.Contains(nameOnly))
             continue;
 
         var replacement = value.Contains('=')
